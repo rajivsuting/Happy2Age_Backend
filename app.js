@@ -21,17 +21,15 @@ const authRoutes = require("./routes/authRoutes");
 
 const port = process.env.PORT || 3000;
 
-app.use(cors({ origin: true, credentials: true }));
-
 app.use(express.json());
-app.use(cookieParser());
 
 // auth
 
 app.get("/", (req, res) => {
   res.send("Hello from the server!");
 });
-
+app.use(cookieParser());
+app.use(cors({ origin: true, credentials: true }));
 app.use("/auth", authRoutes);
 app.use("/participant", participantRoutes);
 app.use("/cohort", cohortRoutes);
