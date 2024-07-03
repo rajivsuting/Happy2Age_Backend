@@ -27,6 +27,10 @@ app.use(express.json());
 app.use(cookieParser());
 
 // auth
+
+app.get("/", function(req, res)){
+  res.send("Welcome to Happy2Age API");
+}
 app.use("/auth", authRoutes);
 app.use("/participant", participantRoutes);
 app.use("/cohort", cohortRoutes);
