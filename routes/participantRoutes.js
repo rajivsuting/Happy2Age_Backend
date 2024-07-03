@@ -8,9 +8,9 @@ const {
   updateParticipant,
 } = require("../controllers/participantController");
 
-routes.post("/create",authenticate, createParticipant);
-routes.get("/all",authenticate, getAllParticipants);
-routes.get("/name",authenticate, searchParticipantsByName);
-routes.patch("/edit/:id",authenticate, updateParticipant);
+routes.post("/create", createParticipant);
+routes.get("/all", getAllParticipants);
+routes.get("/name", searchParticipantsByName);
+routes.patch("/edit/:id", updateParticipant);
 
 module.exports = routes;

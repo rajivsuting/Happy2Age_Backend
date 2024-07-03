@@ -11,8 +11,8 @@ const {
   getAllHappinessScores,
 } = require("../controllers/oxfordHappinessController");
 
-routes.post("/add",authenticate, addCASP);
-routes.get("/participant/:participantId",authenticate, getCASPByParticipantId);
-routes.get("/all",authenticate, getCASPParticipantAll);
+routes.post("/add", addCASP);
+routes.get("/participant/:participantId", getCASPByParticipantId);
+routes.get("/all", getCASPParticipantAll);
 
 module.exports = routes;

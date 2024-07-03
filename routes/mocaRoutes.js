@@ -7,8 +7,8 @@ const {
 const authenticate = require("../middlewares/authenticate");
 const routes = express.Router();
 
-routes.post("/create",authenticate, addMocaTest);
-routes.get("/participant/:id",authenticate, getMocaTestByParticipantId);
-routes.get("/all",authenticate, getAllMocaResult);
+routes.post("/create", addMocaTest);
+routes.get("/participant/:id", getMocaTestByParticipantId);
+routes.get("/all", getAllMocaResult);
 
 module.exports = routes;
