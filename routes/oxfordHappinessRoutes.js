@@ -8,9 +8,10 @@ const {
   getAllHappinessScores,
 } = require("../controllers/oxfordHappinessController");
 
-routes.post("/add", addOxfordHappinessEvaluation);
+routes.post("/add",authenticate, addOxfordHappinessEvaluation);
 
-routes.get("/participant/:participantId", getHappinessScoresByParticipantId);
+routes.get("/participant/:participantId",authenticate, getHappinessScoresByParticipantId);
 
-routes.get("/all", getAllHappinessScores);
+routes.get("/all",authenticate, getAllHappinessScores);
+
 module.exports = routes;

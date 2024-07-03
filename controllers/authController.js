@@ -50,7 +50,7 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, remember } = req.body;
 
     const admin = await AdminSchema.findOne({
       email,
@@ -58,14 +58,19 @@ const login = async (req, res) => {
       enabled: true,
     });
 
+    if (!admin) {
+      return res.status(403).json({ message: "Invalid credentials" });
+    }
+
     const isMatch = await bcrypt.compare(admin.salt + password, admin.password);
 
     if (!isMatch) {
-      res.status(403).json({ message: "Invalid credentials" });
+      return res.status(403).json({ message: "Invalid credentials" });
     }
+
     console.log(process.env.JWT_SECRET);
     const token = jwt.sign({ id: admin.id }, process.env.JWT_SECRET, {
-      expiresIn: req.body.remember ? 365 * 24 + "h" : "24h",
+      expiresIn: remember ? '365d' : '24h',
     });
 
     await AdminSchema.findByIdAndUpdate(
@@ -74,24 +79,23 @@ const login = async (req, res) => {
       { new: true }
     ).exec();
 
+    const cookieOptions = {
+      maxAge: remember ? 365 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000,
+      sameSite: "Lax",
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      path: "/",
+      domain: req.hostname,
+    };
     res
       .status(200)
-      .cookie("token", token, {
-        maxAge: req.body.remember ? 365 * 24 * 60 * 60 * 100 : null,
-        sameSite: "Lax",
-        httpOnly: true,
-        secure: false,
-        path: "/",
-        domain: req.hostname,
-        Partitioned: true,
-      })
+      .cookie("token", token, cookieOptions)
       .json({ token });
   } catch (error) {
     logger.error("Error logging in admin", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
-
 
 const logout = async (req, res) => {
   try {
@@ -119,7 +123,7 @@ const logout = async (req, res) => {
       .clearCookie("token", {
         sameSite: "Lax",
         httpOnly: true,
-        secure: false,
+        secure: true,
         path: "/",
         domain: req.hostname,
         Partitioned: true,

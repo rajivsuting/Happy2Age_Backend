@@ -7,7 +7,7 @@ const {
 } = require("../controllers/evaluationController");
 const authenticate = require("../middlewares/authenticate");
 
-routes.post("/create", createEvaluation);
-routes.get("/all", getAllEvaluation);
+routes.post("/create",authenticate, createEvaluation);
+routes.get("/all",authenticate, getAllEvaluation);
 
 module.exports = routes;

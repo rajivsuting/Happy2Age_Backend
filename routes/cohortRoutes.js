@@ -10,10 +10,10 @@ const {
 } = require("../controllers/cohortController");
 const authenticate = require("../middlewares/authenticate");
 
-routes.post("/create", createCohort);
-routes.get("/all", getAllCohorts);
-routes.get("/name", searchCohortByName);
-routes.patch("/edit/:id", updateCohort);
-routes.delete("/delete/:id", deleteCohort);
+routes.post("/create",authenticate, createCohort);
+routes.get("/all",authenticate, getAllCohorts);
+routes.get("/name",authenticate, searchCohortByName);
+routes.patch("/edit/:id",authenticate, updateCohort);
+routes.delete("/delete/:id",authenticate, deleteCohort);
 
 module.exports = routes;
