@@ -9,9 +9,9 @@ const {
 } = require("../controllers/sessionController");
 const authenticate = require("../middlewares/authenticate");
 
-routes.post("/create", authenticate, createSession);
-routes.get("/all", authenticate, getAllSessions);
-routes.get("/attendance", authenticate, getAllParticipantsAttendance);
-routes.get("/attendencecohort/:cohortId", authenticate, getAttendanceByCohort);
+routes.post("/create", createSession);
+routes.get("/all", getAllSessions);
+routes.get("/attendance", getAllParticipantsAttendance);
+routes.get("/attendencecohort/:cohortId", getAttendanceByCohort);
 
 module.exports = routes;

@@ -9,9 +9,9 @@ const {
 } = require("../controllers/domainController");
 const authenticate = require("../middlewares/authenticate");
 
-routes.post("/create", authenticate, createDomain);
-routes.get("/all", authenticate, getAllDomains);
-routes.get("/:id", authenticate, getDomainById);
-routes.patch("/edit/:id", authenticate, updateDomain);
+routes.post("/create", createDomain);
+routes.get("/all", getAllDomains);
+routes.get("/:id", getDomainById);
+routes.patch("/edit/:id", updateDomain);
 
 module.exports = routes;

@@ -7,7 +7,7 @@ const {
 } = require("../controllers/reportController");
 const authenticate = require("../middlewares/authenticate");
 
-routes.get("/get", authenticate, getReportsByCohort);
-routes.get("/:id", authenticate, getIndividualReport);
+routes.get("/get", getReportsByCohort);
+routes.get("/:id", getIndividualReport);
 
 module.exports = routes;
