@@ -9,7 +9,7 @@ const {
 } = require("../controllers/participantController");
 
 routes.post("/create", authenticate, createParticipant);
-routes.get("/all", authenticate, getAllParticipants);
+routes.get("/all", getAllParticipants);
 routes.get("/name", authenticate, searchParticipantsByName);
 routes.patch("/edit/:id", authenticate, updateParticipant);
 
