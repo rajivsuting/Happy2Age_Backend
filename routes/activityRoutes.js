@@ -9,9 +9,9 @@ const {
 } = require("../controllers/activityController");
 const authenticate = require("../middlewares/authenticate");
 
-routes.post("/create", authenticate, createActivity);
-routes.get("/all", authenticate, getAllActivities);
-routes.patch("/edit/:id", authenticate, updateActivity);
-routes.delete("/delete/:id", authenticate, deleteActivity);
+routes.post("/create", createActivity);
+routes.get("/all", getAllActivities);
+routes.patch("/edit/:id", updateActivity);
+routes.delete("/delete/:id", deleteActivity);
 
 module.exports = routes;
