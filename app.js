@@ -26,9 +26,6 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 
-// app.use("/",(req,res)=>{
-//   res.send("Hi this this server")
-// })
 // auth
 app.use("/auth", authRoutes);
 app.use("/participant", participantRoutes);
