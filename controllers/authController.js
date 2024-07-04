@@ -50,7 +50,7 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
   try {
-    const { email, password, remember } = req.body;
+    const { email, password } = req.body;
 
     const admin = await AdminSchema.findOne({
       email,
@@ -58,19 +58,14 @@ const login = async (req, res) => {
       enabled: true,
     });
 
-    if (!admin) {
-      return res.status(403).json({ message: "Invalid credentials" });
-    }
-
     const isMatch = await bcrypt.compare(admin.salt + password, admin.password);
 
     if (!isMatch) {
-      return res.status(403).json({ message: "Invalid credentials" });
+      res.status(403).json({ message: "Invalid credentials" });
     }
-
     console.log(process.env.JWT_SECRET);
     const token = jwt.sign({ id: admin.id }, process.env.JWT_SECRET, {
-      expiresIn: remember ? '365d' : '24h',
+      expiresIn: req.body.remember ? 365 * 24 + "h" : "24h",
     });
 
     await AdminSchema.findByIdAndUpdate(
@@ -79,17 +74,17 @@ const login = async (req, res) => {
       { new: true }
     ).exec();
 
-    const cookieOptions = {
-      maxAge: remember ? 365 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000,
-      sameSite: "Lax",
-      httpOnly: true,
-      secure: false,
-      path: "/",
-      domain: req.hostname,
-    };
     res
       .status(200)
-      .cookie("token", token, cookieOptions)
+      .cookie("token", token, {
+        maxAge: req.body.remember ? 365 * 24 * 60 * 60 * 100 : null,
+        sameSite: "Lax",
+        httpOnly: true,
+        secure: false,
+        path: "/",
+        domain: req.hostname,
+        Partitioned: true,
+      })
       .json({ token });
   } catch (error) {
     logger.error("Error logging in admin", error);
