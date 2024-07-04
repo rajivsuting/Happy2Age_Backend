@@ -83,7 +83,7 @@ const login = async (req, res) => {
       maxAge: remember ? 365 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000,
       sameSite: "Lax",
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: false,
       path: "/",
       domain: req.hostname,
     };
@@ -123,7 +123,7 @@ const logout = async (req, res) => {
       .clearCookie("token", {
         sameSite: "Lax",
         httpOnly: true,
-        secure: true,
+        secure: false,
         path: "/",
         domain: req.hostname,
         Partitioned: true,
