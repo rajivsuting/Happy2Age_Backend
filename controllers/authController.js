@@ -58,12 +58,14 @@ const login = async (req, res) => {
       enabled: true,
     });
 
-    const isMatch = await bcrypt.compare(admin.salt + password, admin.password);
-
-    if (!isMatch) {
-      res.status(403).json({ message: "Invalid credentials" });
+    // Check if admin exists and password matches
+    if (
+      !admin ||
+      !(await bcrypt.compare(admin.salt + password, admin.password))
+    ) {
+      return res.status(403).json({ message: "Invalid credentials" });
     }
-    console.log(process.env.JWT_SECRET);
+
     const token = jwt.sign({ id: admin.id }, process.env.JWT_SECRET, {
       expiresIn: req.body.remember ? 365 * 24 + "h" : "24h",
     });
@@ -77,7 +79,7 @@ const login = async (req, res) => {
     res
       .status(200)
       .cookie("token", token, {
-        maxAge: req.body.remember ? 365 * 24 * 60 * 60 * 100 : null,
+        maxAge: req.body.remember ? 365 * 24 * 60 * 60 * 1000 : null,
         sameSite: "Lax",
         httpOnly: true,
         secure: false,
@@ -130,7 +132,6 @@ const logout = async (req, res) => {
   }
 };
 
-
 const allUser = async (req, res) => {
   try {
     const allData = await AdminSchema.find();
@@ -151,4 +152,4 @@ const deleteUser = async (req, res) => {
   }
 };
 
-module.exports = { register, login, allUser, deleteUser,logout };
+module.exports = { register, login, allUser, deleteUser, logout };
