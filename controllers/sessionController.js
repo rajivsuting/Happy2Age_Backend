@@ -4,9 +4,8 @@ const Cohort = require("../models/cohortSchema");
 const Attendance = require("../models/attendanceSchema");
 
 const createSession = async (req, res) => {
-  const { name, cohort, activity, date, participants, numberOfHours } =
-    req.body;
-  // console.log(req.body);
+  const { name, cohort, activity, date, participants, numberOfMins } = req.body;
+
   try {
     const cohortDoc = await Cohort.findById(cohort).populate("participants");
     if (!cohortDoc) {
@@ -18,7 +17,7 @@ const createSession = async (req, res) => {
       cohort,
       activity,
       participants,
-      numberOfHours,
+      numberOfMins,
       date: new Date(date),
     });
 
@@ -206,9 +205,120 @@ const getAttendanceByCohort = async (req, res) => {
   }
 };
 
+const editSession = async (req, res) => {
+  const { id } = req.params;
+  const { name, cohort, activity, date, participants, numberOfMins } = req.body;
+
+  try {
+    // Find the session by ID
+    const session = await Session.findById(id);
+    if (!session) {
+      return res.status(404).json({ message: "Session not found" });
+    }
+
+    // Find the cohort by ID
+    const cohortDoc = await Cohort.findById(cohort).populate("participants");
+    if (!cohortDoc) {
+      return res.status(404).json({ message: "Cohort not found" });
+    }
+
+    // Update session fields
+    session.name = name;
+    session.cohort = cohort;
+    session.activity = activity;
+    session.date = new Date(date);
+    session.participants = participants;
+    session.numberOfMins = numberOfMins;
+
+    // Update attendance records
+    const participantIds = participants.map(
+      (participant) => participant.participantId
+    );
+
+    // Remove existing attendance records for the session
+    await Attendance.deleteMany({ session: session._id });
+
+    // Create new attendance records
+    const attendanceRecords = await Promise.all(
+      cohortDoc.participants.map(async (participant) => {
+        const isPresent = participantIds.includes(participant._id.toString());
+        const attendance = new Attendance({
+          participant: participant._id,
+          cohort: cohortDoc._id,
+          session: session._id,
+          present: isPresent,
+          date: new Date(session.date),
+        });
+        await attendance.save();
+        return attendance._id;
+      })
+    );
+
+    session.attendance = attendanceRecords;
+
+    // Save the updated session
+    await session.save();
+
+    // Update the cohort with the updated session
+    const sessionIndex = cohortDoc.sessions.findIndex(
+      (s) => s.toString() === id
+    );
+    if (sessionIndex !== -1) {
+      cohortDoc.sessions[sessionIndex] = session._id;
+    } else {
+      cohortDoc.sessions.push(session._id);
+    }
+    await cohortDoc.save();
+
+    res.status(200).json(session);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send({ success: false, message: err.message });
+  }
+};
+
+const searchSessionsWithDateRange = async (req, res) => {
+  const { startDate, endDate } = req.query;
+
+  if (!startDate || !endDate) {
+    return res.status(400).json({
+      message: "Both startDate and endDate query parameters are required",
+    });
+  }
+
+  try {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return res.status(400).json({ message: "Invalid date format" });
+    }
+
+    const sessions = await Session.find({
+      date: {
+        $gte: start,
+        $lte: end,
+      },
+    });
+
+    if (sessions.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No sessions found within the specified date range" });
+    }
+
+    res.status(200).json(sessions);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: err.message });
+  }
+};
+
 module.exports = {
   createSession,
   getAllSessions,
   getAllParticipantsAttendance,
   getAttendanceByCohort,
+  editSession,
+  searchSessionsWithDateRange,
 };

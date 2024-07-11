@@ -133,9 +133,33 @@ const deleteActivity = async (req, res) => {
   }
 };
 
+const searchActivityByName = async (req, res) => {
+  const { name } = req.query;
+
+  if (!name) {
+    return res
+      .status(400)
+      .json({ message: "Name query parameter is required" });
+  }
+
+  try {
+    const activities = await Activity.find({ name: new RegExp(name, "i") });
+
+    if (activities.length === 0) {
+      return res.status(404).json({ message: "No activities found" });
+    }
+
+    res.status(200).json(activities);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: err.message });
+  }
+};
+
 module.exports = {
   createActivity,
   getAllActivities,
   updateActivity,
   deleteActivity,
+  searchActivityByName,
 };

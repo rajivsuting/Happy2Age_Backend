@@ -11,19 +11,8 @@ const createParticipant = async (req, res) => {
     }
 
     const participantData = req.body;
-    const email = participantData.email;
+
     const cohort = participantData.cohort;
-
-    const existingParticipant = await Participant.findOne({ email });
-
-    if (existingParticipant) {
-      return res
-        .status(409)
-        .json({
-          success: false,
-          message: "User with this email already exists",
-        });
-    }
 
     const existingCohort = await Cohort.findOne({ _id: cohort });
 

@@ -20,7 +20,7 @@ const sessionSchema = new Schema({
     },
   ],
   participants: { type: Array, required: true },
-  numberOfHours: {
+  numberOfMins: {
     type: Number,
     required: true,
     min: 0,

@@ -107,9 +107,30 @@ const updateDomain = async (req, res) => {
   }
 };
 
+const deleteDomain = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Find the domain by ID
+    const domain = await Domain.findById(id);
+    if (!domain) {
+      return res.status(404).json({ message: "Domain not found" });
+    }
+
+    // Delete the domain
+    await Domain.findByIdAndDelete(id);
+
+    res.status(200).json({ message: "Domain deleted successfully" });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: err.message });
+  }
+};
+
 module.exports = {
   createDomain,
   getAllDomains,
   getDomainById,
   updateDomain,
+  deleteDomain,
 };

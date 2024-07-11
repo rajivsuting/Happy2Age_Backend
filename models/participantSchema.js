@@ -11,8 +11,7 @@ const participantSchema = new Schema(
     },
     email: {
       type: String,
-      required: true,
-      unique: true,
+
       trim: true,
       lowercase: true,
       match: [
@@ -20,6 +19,13 @@ const participantSchema = new Schema(
         "Please fill a valid email address",
       ],
     },
+
+    phone: {
+      type: String,
+      required: true,
+      match: [/^\d{10}$/, "Please fill a valid 10-digit phone number"],
+    },
+
     dob: {
       type: Date,
       required: true,
