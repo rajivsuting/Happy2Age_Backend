@@ -111,33 +111,60 @@ const updateParticipant = async (req, res) => {
     const { id } = req.params;
     const participantData = req.body;
 
-    const cohortId = participantData.cohort;
+    const newCohortId = participantData.cohort;
 
+    // Find the participant by ID
     const existingParticipant = await Participant.findById(id);
-
-    const existingCohort = await Cohort.findById(cohortId);
-    if (!existingCohort)
-      res.status(404).json({ success: false, message: "No cohort found" });
-
     if (!existingParticipant) {
       return res
         .status(404)
         .json({ success: false, message: "Participant not found" });
     }
 
-    const updatedParticipant = await Participant.findByIdAndUpdate(
-      id,
-      participantData,
-      { new: true }
-    );
+    // Find the new cohort by ID
+    const existingCohort = await Cohort.findById(newCohortId);
+    if (!existingCohort) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No cohort found" });
+    }
 
-    existingCohort.participants.push(id);
-    await existingCohort.save();
+    // Check if the cohort has changed
+    const oldCohortId = existingParticipant.cohort.toString();
+    if (oldCohortId !== newCohortId) {
+      // Update participant's cohort
+      existingParticipant.cohort = newCohortId;
+      const updatedParticipant = await existingParticipant.save();
 
-    res.status(200).json({ success: true, data: updatedParticipant });
+      // Update cohort reference in evaluations and attendance
+      await Evaluation.updateMany({ participant: id }, { cohort: newCohortId });
+      await Attendance.updateMany({ participant: id }, { cohort: newCohortId });
+
+      // Remove participant from old cohort's participants array
+      await Cohort.findByIdAndUpdate(oldCohortId, {
+        $pull: { participants: id },
+      });
+
+      // Add participant to new cohort's participants array
+      await Cohort.findByIdAndUpdate(newCohortId, {
+        $addToSet: { participants: id },
+      });
+
+      return res.status(200).json({ success: true, data: updatedParticipant });
+    } else {
+      // If the cohort has not changed, just update the participant data
+      const updatedParticipant = await Participant.findByIdAndUpdate(
+        id,
+        participantData,
+        { new: true }
+      );
+      return res.status(200).json({ success: true, data: updatedParticipant });
+    }
   } catch (error) {
-    logger.error("Error updating participant:", error);
-    res.status(500).json({ success: false, message: "Internal server error" });
+    console.error("Error updating participant:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
   }
 };
 
