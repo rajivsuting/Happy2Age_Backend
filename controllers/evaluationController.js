@@ -11,30 +11,31 @@ const createEvaluation = async (req, res) => {
         .json({ success: false, message: "All fields are required" });
     }
     let totalAverage = 0;
-    domain.forEach((element) => {
-      const subTopics = element.subTopics;
-      const totalScore = subTopics.reduce(
-        (sum, subTopic) => sum + Number(subTopic.score),
-        0
-      );
-      const averageScore = subTopics.length ? totalScore / subTopics.length : 0;
-      totalAverage += averageScore;
-      if (averageScore <= 0) {
-        element.conducted = false;
-      } else {
-        element.conducted = true;
-      }
 
-      element.average = averageScore.toFixed(2);
+    domain.forEach((element, index) => {
+      const subTopics = element.subTopics.filter((sub) => sub.score);
+      element.subTopics = subTopics;
     });
 
-    const grandAverage = (totalAverage / domain.length).toFixed(2);
+    let validDomains = domain.filter((element) => element.subTopics.length);
+    let grandScore = 0;
+    validDomains.forEach((domain) => {
+      const subTopicScores = domain.subTopics.map((sub) => Number(sub.score));
+      const totalScore = subTopicScores.reduce((sum, score) => sum + score, 0);
+      const averageScore = subTopicScores.length
+        ? totalScore / subTopicScores.length
+        : 0;
+      domain.average = averageScore.toFixed(2);
+      grandScore += averageScore;
+    });
+
+    const grandAverage = (grandScore / validDomains.length).toFixed(2);
 
     const newEvaluation = new Evaluation({
       cohort,
       session,
       activity,
-      domain,
+      domain: validDomains,
       participant,
       grandAverage,
     });

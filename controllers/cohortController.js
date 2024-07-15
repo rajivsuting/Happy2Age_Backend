@@ -65,7 +65,7 @@ const getAllCohorts = async (req, res) => {
     // Get the total count of cohorts for pagination purposes
     const totalCohorts = await Cohort.countDocuments();
 
-    logger.info(`Retrieved ${cohorts.length} cohorts successfully`);
+    // logger.info(`Retrieved ${cohorts.length} cohorts successfully`);
 
     res.status(200).json({
       success: true,

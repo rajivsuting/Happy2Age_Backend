@@ -1,0 +1,223 @@
+{
+  "success": true,
+  "message": [
+    {
+      "_id": "669571b1b07557b5028d4c4b",
+      "cohort": "6694fcc1854c5c6df635487b",
+      "participant": "669500fd854c5c6df6354884",
+      "activity": "6695017b854c5c6df63548a7",
+      "session": {
+        "_id": "6695031b854c5c6df6354a11",
+        "name": "Session-001",
+        "cohort": "6694fcc1854c5c6df635487b",
+        "activity": ["6695017b854c5c6df63548a7"],
+        "participants": [
+          {
+            "participantId": "669500fd854c5c6df6354884",
+            "cohortId": "6694fcc1854c5c6df635487b"
+          }
+        ],
+        "numberOfMins": 45,
+        "date": "2024-07-14T00:00:00.000Z",
+        "__v": 0
+      },
+      "domain": [
+        {
+          "_id": "66950246854c5c6df635490d",
+          "category": "General",
+          "name": "Domain-002",
+          "subTopics": [
+            {
+              "content": "Question 1",
+              "score": "2",
+              "_id": "66950246854c5c6df635490e"
+            },
+            {
+              "content": "Question 2",
+              "score": "3",
+              "_id": "66950246854c5c6df635490f"
+            },
+            {
+              "content": "Question 3",
+              "score": "4",
+              "_id": "66950246854c5c6df6354910"
+            },
+            {
+              "content": "Question 4",
+              "score": "4",
+              "_id": "66950246854c5c6df6354911"
+            }
+          ],
+          "average": "3.25",
+          "__v": 0,
+          "observation": "Good"
+        },
+        {
+          "_id": "6695026c854c5c6df635491e",
+          "category": "General",
+          "name": "Domain-003",
+          "subTopics": [
+            {
+              "content": "Question 1",
+              "score": "1",
+              "_id": "6695026c854c5c6df635491f"
+            },
+            {
+              "content": "Question 2",
+              "score": "2",
+              "_id": "6695026c854c5c6df6354920"
+            },
+            {
+              "content": "Question 3",
+              "score": "3",
+              "_id": "6695026c854c5c6df6354921"
+            },
+            {
+              "content": "Question 4",
+              "score": "1",
+              "_id": "6695026c854c5c6df6354922"
+            },
+            {
+              "content": "Question 5",
+              "score": "2",
+              "_id": "6695026c854c5c6df6354923"
+            }
+          ],
+          "average": "1.80",
+          "__v": 0,
+          "observation": "Ok"
+        }
+      ],
+      "grandAverage": 2.52,
+      "__v": 0
+    },
+    {
+      "_id": "669571feb07557b5028d4c86",
+      "cohort": "6694fcc1854c5c6df635487b",
+      "participant": "669500fd854c5c6df6354884",
+      "activity": "6695017b854c5c6df63548a7",
+      "session": {
+        "_id": "66950337854c5c6df6354a1c",
+        "name": "Session-002",
+        "cohort": "6694fcc1854c5c6df635487b",
+        "activity": ["6695017b854c5c6df63548a7"],
+        "participants": [
+          {
+            "participantId": "669500fd854c5c6df6354884",
+            "cohortId": "6694fcc1854c5c6df635487b"
+          },
+          {
+            "participantId": "66950136854c5c6df635488d",
+            "cohortId": "6694fcc1854c5c6df635487b"
+          }
+        ],
+        "numberOfMins": 48,
+        "date": "2024-07-13T00:00:00.000Z",
+        "__v": 0
+      },
+      "domain": [
+        {
+          "_id": "66950246854c5c6df635490d",
+          "category": "General",
+          "name": "Domain-002",
+          "subTopics": [
+            {
+              "content": "Question 1",
+              "score": "2",
+              "_id": "66950246854c5c6df635490e"
+            },
+            {
+              "content": "Question 2",
+              "score": "4",
+              "_id": "66950246854c5c6df635490f"
+            },
+            {
+              "content": "Question 3",
+              "score": "5",
+              "_id": "66950246854c5c6df6354910"
+            },
+            {
+              "content": "Question 4",
+              "score": "2",
+              "_id": "66950246854c5c6df6354911"
+            },
+            {
+              "content": "Question 5",
+              "score": "5",
+              "_id": "66950246854c5c6df6354912"
+            }
+          ],
+          "average": "3.60",
+          "__v": 0,
+          "observation": "Good"
+        }
+      ],
+      "grandAverage": 3.6,
+      "__v": 0
+    },
+    {
+      "_id": "6695728ab07557b5028d4d25",
+      "cohort": "6694fcc1854c5c6df635487b",
+      "participant": "66950136854c5c6df635488d",
+      "activity": "6695017b854c5c6df63548a7",
+      "session": {
+        "_id": "66950337854c5c6df6354a1c",
+        "name": "Session-002",
+        "cohort": "6694fcc1854c5c6df635487b",
+        "activity": ["6695017b854c5c6df63548a7"],
+        "participants": [
+          {
+            "participantId": "669500fd854c5c6df6354884",
+            "cohortId": "6694fcc1854c5c6df635487b"
+          },
+          {
+            "participantId": "66950136854c5c6df635488d",
+            "cohortId": "6694fcc1854c5c6df635487b"
+          }
+        ],
+        "numberOfMins": 48,
+        "date": "2024-07-13T00:00:00.000Z",
+        "__v": 0
+      },
+      "domain": [
+        {
+          "_id": "6695026c854c5c6df635491e",
+          "category": "General",
+          "name": "Domain-003",
+          "subTopics": [
+            {
+              "content": "Question 1",
+              "score": "1",
+              "_id": "6695026c854c5c6df635491f"
+            },
+            {
+              "content": "Question 2",
+              "score": "1",
+              "_id": "6695026c854c5c6df6354920"
+            },
+            {
+              "content": "Question 3",
+              "score": "1",
+              "_id": "6695026c854c5c6df6354921"
+            },
+            {
+              "content": "Question 4",
+              "score": "1",
+              "_id": "6695026c854c5c6df6354922"
+            },
+            {
+              "content": "Question 5",
+              "score": "1",
+              "_id": "6695026c854c5c6df6354923"
+            }
+          ],
+          "average": "1.00",
+          "__v": 0,
+          "observation": "Good"
+        }
+      ],
+      "grandAverage": 1,
+      "__v": 0
+    }
+  ]
+}

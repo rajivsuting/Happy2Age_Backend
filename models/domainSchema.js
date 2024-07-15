@@ -39,10 +39,6 @@ const domainSchema = new Schema({
     default: 0,
     trim: true,
   },
-
-  conducted: {
-    type: Boolean,
-  },
 });
 
 const Domain = mongoose.model("Domain", domainSchema);

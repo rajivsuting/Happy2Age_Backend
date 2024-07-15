@@ -17,95 +17,93 @@ const getReportsByCohort = async (req, res) => {
     const startDate = new Date(start);
     const endDate = new Date(end);
 
-    const evaluations = await Evaluation.find({ cohort }).populate({
-      path: "session",
-      match: { date: { $gte: startDate, $lte: endDate } },
-    });
+    const evaluations = await Evaluation.find({ cohort })
+      .populate({
+        path: "session",
+        match: { date: { $gte: startDate, $lte: endDate } },
+      })
+      .populate("participant");
 
+    // Fetch attendance records for the cohort within the date range
     const attendanceRecords = await Attendance.find({
       cohort,
       date: { $gte: startDate, $lte: endDate },
     });
 
+    // Calculate attendance
     const attendance = attendanceRecords.filter(
       (record) => record.present
     ).length;
     const totalAttendance = attendanceRecords.length;
 
+    // Retrieve the cohort details to get the total number of sessions
     const cohortDoc = await Cohort.findById(cohort).populate("sessions");
     const totalNumberOfSessions = cohortDoc.sessions.length;
 
-    const filteredEvaluations = evaluations.filter(
-      (evaluation) => evaluation.session
-    );
+    let domainStats = {};
+    let participantDomainScores = {};
 
-    if (filteredEvaluations.length === 0) {
-      return res
-        .status(404)
-        .json({ success: false, message: "No reports found" });
-    }
+    evaluations.forEach((item) => {
+      item.domain.forEach((domain) => {
+        const domainName = domain.name;
+        const domainAverage = parseFloat(domain.average);
+        const participantName = item.participant.name;
 
-    const domainData = {};
-    const cohortDomainData = {};
-    const detailedScores = [];
-
-    for (const evaluation of filteredEvaluations) {
-      for (const domain of evaluation.domain) {
-        const participant = await Participant.findById(evaluation.participant);
-
-        if (!domainData[domain.name]) {
-          domainData[domain.name] = {
-            totalScore: 0,
-            count: 0,
-            sessions: new Set(),
+        if (!domainStats[domainName]) {
+          domainStats[domainName] = {
+            totalAverage: 0,
+            numberAppearance: 0,
           };
         }
-        if (domain.average !== 0 && domain.conducted) {
-          domainData[domain.name].totalScore += parseFloat(domain.average);
-          domainData[domain.name].count += 1;
-          domainData[domain.name].sessions.add(
-            evaluation.session._id.toString()
-          );
 
-          detailedScores.push({
-            domain: domain.name,
-            score: parseFloat(domain.average),
-            participant: participant.name,
+        domainStats[domainName].totalAverage += domainAverage;
+        domainStats[domainName].numberAppearance += 1;
+
+        // Collect participant domain scores
+        if (!participantDomainScores[participantName]) {
+          participantDomainScores[participantName] = {};
+        }
+
+        if (!participantDomainScores[participantName][domainName]) {
+          participantDomainScores[participantName][domainName] = {
+            totalScore: 0,
+            count: 0,
+          };
+        }
+
+        participantDomainScores[participantName][domainName].totalScore +=
+          domainAverage;
+        participantDomainScores[participantName][domainName].count += 1;
+      });
+    });
+
+    let graphDetails = Object.keys(domainStats).map((domainName) => {
+      const { totalAverage, numberAppearance } = domainStats[domainName];
+      return {
+        domainName: domainName,
+        centerAverage: (totalAverage / numberAppearance).toFixed(2),
+        numberOfSessions: numberAppearance,
+      };
+    });
+
+    let participantDomainScoreList = [];
+
+    Object.keys(participantDomainScores).forEach((participantName) => {
+      Object.keys(participantDomainScores[participantName]).forEach(
+        (domainName) => {
+          const { totalScore, count } =
+            participantDomainScores[participantName][domainName];
+          participantDomainScoreList.push({
+            domain: domainName,
+            score: (totalScore / count).toFixed(2),
+            participant: participantName,
           });
         }
+      );
+    });
 
-        if (!cohortDomainData[domain.name]) {
-          cohortDomainData[domain.name] = {
-            totalScore: 0,
-            count: 0,
-          };
-        }
-        if (domain.conducted) {
-          cohortDomainData[domain.name].totalScore += parseFloat(
-            domain.average
-          );
-          cohortDomainData[domain.name].count += 1;
-        }
-      }
-    }
-
-    const graphDetails = Object.keys(domainData)
-      .map((domainName) => ({
-        domainName,
-        average: (
-          domainData[domainName].totalScore / domainData[domainName].count
-        ).toFixed(2),
-        cohortAverage: (
-          cohortDomainData[domainName].totalScore /
-          cohortDomainData[domainName].count
-        ).toFixed(2),
-        numberOfSessions: domainData[domainName].sessions.size,
-      }))
-      .filter((domain) => domain.numberOfSessions > 0);
-
-    // Calculate averageForCohort
     const totalCohortAverage = graphDetails.reduce(
-      (sum, domain) => sum + parseFloat(domain.cohortAverage),
+      (sum, domain) => sum + parseFloat(domain.centerAverage),
       0
     );
     const averageForCohort = (totalCohortAverage / graphDetails.length).toFixed(
@@ -113,15 +111,15 @@ const getReportsByCohort = async (req, res) => {
     );
 
     const cohortReport = {
+      cohort,
       attendance,
       totalAttendance,
       totalNumberOfSessions,
       graphDetails,
-      detailedScores,
+      participantDomainScores: participantDomainScoreList,
       averageForCohort,
     };
 
-    console.log(cohortReport);
     res.status(200).json({ success: true, message: cohortReport });
   } catch (error) {
     console.error(`Error fetching reports: ${error.message}`);
