@@ -74,4 +74,55 @@ const getAllEvaluation = async (req, res) => {
   }
 };
 
-module.exports = { createEvaluation, getAllEvaluation };
+const deleteEvaluation = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const evaluation = await Evaluation.findByIdAndDelete(id);
+
+    if (!evaluation) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Evaluation not found" });
+    }
+
+    res
+      .status(200)
+      .json({ success: true, message: "Evaluation deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+const updateEvaluation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedEvaluation = req.body;
+    const evaluation = await Evaluation.findByIdAndUpdate(
+      id,
+      updatedEvaluation,
+      {
+        new: true,
+      }
+    );
+    if (!evaluation) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Evaluation not found" });
+    }
+
+    res
+      .status(200)
+      .json({ success: true, message: "Evaluation updated successfully" });
+  } catch (error) {
+    console.error("Error updating evaluation:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+module.exports = {
+  createEvaluation,
+  getAllEvaluation,
+  deleteEvaluation,
+  updateEvaluation,
+};
