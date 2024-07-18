@@ -48,16 +48,19 @@ const getReportsByCohort = async (req, res) => {
         const domainName = domain.name;
         const domainAverage = parseFloat(domain.average);
         const participantName = item.participant.name;
+        const sessionId = item.session._id.toString();
 
         if (!domainStats[domainName]) {
           domainStats[domainName] = {
             totalAverage: 0,
             numberAppearance: 0,
+            sessionIds: new Set(),
           };
         }
 
         domainStats[domainName].totalAverage += domainAverage;
         domainStats[domainName].numberAppearance += 1;
+        domainStats[domainName].sessionIds.add(sessionId);
 
         // Collect participant domain scores
         if (!participantDomainScores[participantName]) {
@@ -78,11 +81,12 @@ const getReportsByCohort = async (req, res) => {
     });
 
     let graphDetails = Object.keys(domainStats).map((domainName) => {
-      const { totalAverage, numberAppearance } = domainStats[domainName];
+      const { totalAverage, numberAppearance, sessionIds } =
+        domainStats[domainName];
       return {
         domainName: domainName,
         centerAverage: (totalAverage / numberAppearance).toFixed(2),
-        numberOfSessions: numberAppearance,
+        numberOfSessions: sessionIds.size, // Unique session count
       };
     });
 
