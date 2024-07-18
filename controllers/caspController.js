@@ -3,7 +3,7 @@ const CASP = require("../models/caspSchema");
 
 const addCASP = async (req, res) => {
   try {
-    const { participant, questions,date } = req.body;
+    const { participant, questions,date,totalScore } = req.body;
 
     // Check if participant and questions are provided
     if (!participant || !questions || questions.length !== 19) {
@@ -25,7 +25,8 @@ const addCASP = async (req, res) => {
     const caspDoc = new CASP({
       participant,
       questions,
-      date
+      date,
+      totalScore
     });
 
     // Save the document to the database

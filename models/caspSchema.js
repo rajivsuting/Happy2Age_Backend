@@ -12,6 +12,9 @@ const caspSchema = new Schema({
   },
   date:{
     type:Date
+  },
+  totalScore : {
+    type: Number,
   }
 });
 
