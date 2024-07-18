@@ -12,7 +12,10 @@ const mocaSchema = new Schema({
   },
   date:{
     type:Date
-  }
+  },
+  totalScore : {
+    type:Number
+  },
 });
 
 const moca = mongoose.model("MocaTest", mocaSchema);
