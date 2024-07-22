@@ -1,29 +1,24 @@
 const OxfordHappiness = require("../models/oxfordHappiness");
 const mongoose = require("mongoose");
 
-
-
-
 const addOxfordHappinessEvaluation = async (req, res) => {
   try {
-    const { participant, questions,date } = req.body;
+    const { participant, questions, date } = req.body;
 
-    // Calculate the happiness score
     const happinessScore =
       questions.reduce((total, question) => {
         let score = question.score;
         if (question.isReverse) {
-          // Reverse the score for questions marked as reverse
           score = 7 - score;
         }
         return total + score;
-      }, 0) / 29; // Divide by 29 as there are 29 questions
+      }, 0) / 29;
 
     const oxfordHappiness = new OxfordHappiness({
       participant,
       questions,
       happinessScore,
-      date
+      date,
     });
 
     // Save the oxfordHappiness document to the database
@@ -46,12 +41,10 @@ const addOxfordHappinessEvaluation = async (req, res) => {
   }
 };
 
-
-
 const getHappinessScoresByParticipantId = async (req, res) => {
   try {
     const { participantId } = req.params;
-console.log(participantId);
+    console.log(participantId);
     // Check if participantId is provided
     if (!participantId) {
       return res.status(400).json({
@@ -99,7 +92,7 @@ console.log(participantId);
 };
 const getAllHappinessScores = async (req, res) => {
   try {
-console.log("mdjdndndndndndnnnnnnnn")
+    console.log("mdjdndndndndndnnnnnnnn");
     // Attempt to find happiness scores by participant id
     const happinessScores = await OxfordHappiness.find();
     // Return the happiness scores

@@ -3,9 +3,8 @@ const CASP = require("../models/caspSchema");
 
 const addCASP = async (req, res) => {
   try {
-    const { participant, questions,date,totalScore } = req.body;
+    const { participant, questions, date, totalScore } = req.body;
 
-    // Check if participant and questions are provided
     if (!participant || !questions || questions.length !== 19) {
       return res.status(400).json({
         success: false,
@@ -13,7 +12,6 @@ const addCASP = async (req, res) => {
       });
     }
 
-    // Check if participant is a valid ObjectId
     if (!mongoose.Types.ObjectId.isValid(participant)) {
       return res.status(400).json({
         success: false,
@@ -21,18 +19,15 @@ const addCASP = async (req, res) => {
       });
     }
 
-    // Create a new CASP document
     const caspDoc = new CASP({
       participant,
       questions,
       date,
-      totalScore
+      totalScore,
     });
 
-    // Save the document to the database
     await caspDoc.save();
 
-    // Send a success response
     res.status(201).json({
       success: true,
       message: "CASP added successfully",
@@ -96,7 +91,6 @@ const getCASPByParticipantId = async (req, res) => {
 
 const getCASPParticipantAll = async (req, res) => {
   try {
-
     // Attempt to find CASP by participant id
     const caspDoc = await CASP.find();
 
@@ -122,4 +116,89 @@ const getCASPParticipantAll = async (req, res) => {
     });
   }
 };
-module.exports = { addCASP, getCASPByParticipantId,getCASPParticipantAll };
+
+const updateCASPResult = async (req, res) => {
+  try {
+    const { participantId } = req.params;
+    const { questions, date, totalScore } = req.body;
+
+    if (!participantId) {
+      return res.status(400).json({
+        success: false,
+        message: "Participant ID is required",
+      });
+    }
+
+    if (!questions || !date) {
+      return res.status(400).json({
+        success: false,
+        message: "Questions and date are required",
+      });
+    }
+
+    const updatedCASPDoc = await CASP.findOneAndUpdate(
+      { participant: participantId },
+      { $set: { questions, date, totalScore } },
+      { new: true }
+    );
+
+    if (!updatedCASPDoc) {
+      return res.status(404).json({
+        success: false,
+        message: "No CASP found for this participant",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "CASP updated successfully",
+      data: updatedCASPDoc,
+    });
+  } catch (error) {
+    console.error("Error updating CASP:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+const deleteCASPResult = async (req, res) => {
+  try {
+    const { participantId } = req.params;
+    if (!participantId) {
+      return res.status(400).json({
+        success: false,
+        message: "Participant ID is required",
+      });
+    }
+    const deletedCASPDoc = await CASP.findOneAndDelete({
+      participant: participantId,
+    });
+    if (!deletedCASPDoc) {
+      return res.status(404).json({
+        success: false,
+        message: "No CASP found for this participant",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "CASP deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting CASP:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+module.exports = {
+  addCASP,
+  getCASPByParticipantId,
+  getCASPParticipantAll,
+  updateCASPResult,
+  deleteCASPResult,
+};
