@@ -97,23 +97,55 @@ const deleteEvaluation = async (req, res) => {
 const updateEvaluation = async (req, res) => {
   try {
     const { id } = req.params;
-    const updatedEvaluation = req.body;
-    const evaluation = await Evaluation.findByIdAndUpdate(
-      id,
-      updatedEvaluation,
-      {
-        new: true,
-      }
-    );
-    if (!evaluation) {
+    const { cohort, session, activity, domain, participant } = req.body;
+
+    if (!cohort || !session || !activity || !domain || !participant) {
+      return res
+        .status(400)
+        .json({ success: false, message: "All fields are required" });
+    }
+
+    const existingEvaluation = await Evaluation.findById(id);
+    if (!existingEvaluation) {
       return res
         .status(404)
         .json({ success: false, message: "Evaluation not found" });
     }
 
-    res
-      .status(200)
-      .json({ success: true, message: "Evaluation updated successfully" });
+    domain.forEach((element) => {
+      const subTopics = element.subTopics.filter((sub) => sub.score);
+      element.subTopics = subTopics;
+    });
+
+    let validDomains = domain.filter((element) => element.subTopics.length);
+    let grandScore = 0;
+
+    validDomains.forEach((domain) => {
+      const subTopicScores = domain.subTopics.map((sub) => Number(sub.score));
+      const totalScore = subTopicScores.reduce((sum, score) => sum + score, 0);
+      const averageScore = subTopicScores.length
+        ? totalScore / subTopicScores.length
+        : 0;
+      domain.average = averageScore.toFixed(2);
+      grandScore += averageScore;
+    });
+
+    const grandAverage = (grandScore / validDomains.length).toFixed(2);
+
+    existingEvaluation.cohort = cohort;
+    existingEvaluation.session = session;
+    existingEvaluation.activity = activity;
+    existingEvaluation.domain = validDomains;
+    existingEvaluation.participant = participant;
+    existingEvaluation.grandAverage = grandAverage;
+
+    const updatedEvaluation = await existingEvaluation.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Evaluation updated successfully",
+      data: updatedEvaluation,
+    });
   } catch (error) {
     console.error("Error updating evaluation:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
