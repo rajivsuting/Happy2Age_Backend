@@ -47,7 +47,7 @@ const createSession = async (req, res) => {
 
     cohortDoc.sessions.push(session);
     let check = await cohortDoc.save();
-    // console.log(check);
+
     res.status(201).json(session);
   } catch (err) {
     console.error(err.message);
@@ -210,51 +210,50 @@ const editSession = async (req, res) => {
   const { name, cohort, activity, date, participants, numberOfMins } = req.body;
 
   try {
+    // Validate inputs
+    if (!cohort || !participants || participants.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "Cohort and participants are required" });
+    }
+
     // Find the session by ID
     const session = await Session.findById(id);
     if (!session) {
       return res.status(404).json({ message: "Session not found" });
     }
 
-    // Find the cohort by ID
+    // Find the cohort by ID and populate participants
     const cohortDoc = await Cohort.findById(cohort).populate("participants");
     if (!cohortDoc) {
       return res.status(404).json({ message: "Cohort not found" });
     }
 
     // Update session fields
-    session.name = name;
-    session.cohort = cohort;
-    session.activity = activity;
-    session.date = new Date(date);
-    session.participants = participants;
-    session.numberOfMins = numberOfMins;
+    session.name = name || session.name;
+    session.cohort = cohort || session.cohort;
+    session.activity = activity || session.activity;
+    session.date = date ? new Date(date) : session.date;
+    session.participants = participants || session.participants;
+    session.numberOfMins = numberOfMins || session.numberOfMins;
 
-    // Update attendance records
+    // Retrieve attendance records for the session
+    const attendanceDocs = await Attendance.find({ session: session._id });
+
+    // Map the participant IDs from the request body
     const participantIds = participants.map(
       (participant) => participant.participantId
     );
 
-    // Remove existing attendance records for the session
-    await Attendance.deleteMany({ session: session._id });
-
-    // Create new attendance records
-    const attendanceRecords = await Promise.all(
-      cohortDoc.participants.map(async (participant) => {
-        const isPresent = participantIds.includes(participant._id.toString());
-        const attendance = new Attendance({
-          participant: participant._id,
-          cohort: cohortDoc._id,
-          session: session._id,
-          present: isPresent,
-          date: new Date(session.date),
-        });
+    // Update attendance records
+    await Promise.all(
+      attendanceDocs.map(async (attendance) => {
+        attendance.present = participantIds.includes(
+          attendance.participant.toString()
+        );
         await attendance.save();
-        return attendance._id;
       })
     );
-
-    session.attendance = attendanceRecords;
 
     // Save the updated session
     await session.save();

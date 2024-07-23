@@ -119,10 +119,10 @@ const getCASPParticipantAll = async (req, res) => {
 
 const updateCASPResult = async (req, res) => {
   try {
-    const { participantId } = req.params;
+    const { id } = req.params;
     const { questions, date, totalScore } = req.body;
 
-    if (!participantId) {
+    if (!id) {
       return res.status(400).json({
         success: false,
         message: "Participant ID is required",
@@ -137,7 +137,7 @@ const updateCASPResult = async (req, res) => {
     }
 
     const updatedCASPDoc = await CASP.findOneAndUpdate(
-      { participant: participantId },
+      { participant: id },
       { $set: { questions, date, totalScore } },
       { new: true }
     );
@@ -165,7 +165,7 @@ const updateCASPResult = async (req, res) => {
 
 const deleteCASPResult = async (req, res) => {
   try {
-    const { participantId } = req.params;
+    const { id } = req.params;
     if (!participantId) {
       return res.status(400).json({
         success: false,
@@ -173,7 +173,7 @@ const deleteCASPResult = async (req, res) => {
       });
     }
     const deletedCASPDoc = await CASP.findOneAndDelete({
-      participant: participantId,
+      participant: id,
     });
     if (!deletedCASPDoc) {
       return res.status(404).json({
