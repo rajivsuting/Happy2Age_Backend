@@ -13,6 +13,6 @@ routes.post("/create", addMocaTest);
 routes.get("/participant/:id", getMocaTestByParticipantId);
 routes.get("/all", getAllMocaResult);
 routes.patch("/edit/:id", updateMocaResult);
-routes.delete("/delete/:id", deleteOxfordHappinessResult);
+routes.delete("/delete/:id", deleteMocaResult);
 
 module.exports = routes;
