@@ -111,8 +111,36 @@ const getAllHappinessScores = async (req, res) => {
     });
   }
 };
+
+const deleteOxfordHappinessResult = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await OxfordHappiness.findByIdAndDelete(id);
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: "Oxford Happiness Evaluation not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Oxford Happiness Evaluation deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error in deleteOxfordHappinessResult:", error);
+    res.status(500).json({
+      success: false,
+      message:
+        "An error occurred while deleting the Oxford Happiness Evaluation",
+      message: error.message,
+    });
+  }
+};
 module.exports = {
   getAllHappinessScores,
   addOxfordHappinessEvaluation,
   getHappinessScoresByParticipantId,
+  deleteOxfordHappinessResult,
 };
