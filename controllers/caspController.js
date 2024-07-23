@@ -166,15 +166,13 @@ const updateCASPResult = async (req, res) => {
 const deleteCASPResult = async (req, res) => {
   try {
     const { id } = req.params;
-    if (!participantId) {
+    if (!id) {
       return res.status(400).json({
         success: false,
         message: "Participant ID is required",
       });
     }
-    const deletedCASPDoc = await CASP.findOneAndDelete({
-      participant: id,
-    });
+    const deletedCASPDoc = await CASP.findByIdAndDelete(id);
     if (!deletedCASPDoc) {
       return res.status(404).json({
         success: false,
