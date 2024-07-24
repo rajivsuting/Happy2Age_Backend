@@ -21,10 +21,8 @@ const addOxfordHappinessEvaluation = async (req, res) => {
       date,
     });
 
-    // Save the oxfordHappiness document to the database
     await oxfordHappiness.save();
 
-    // Send a success response
     res.status(201).json({
       success: true,
       message: "Oxford Happiness Evaluation added successfully",
@@ -112,6 +110,55 @@ const getAllHappinessScores = async (req, res) => {
   }
 };
 
+const editOxfordHappinessEvaluation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { participant, questions, date } = req.body;
+
+    // Calculate the happiness score
+    const happinessScore =
+      questions.reduce((total, question) => {
+        let score = question.score;
+        if (question.isReverse) {
+          score = 7 - score;
+        }
+        return total + score;
+      }, 0) / 29;
+
+    // Find the existing Oxford Happiness evaluation by ID
+    const oxfordHappiness = await OxfordHappiness.findById(id);
+    if (!oxfordHappiness) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Evaluation not found" });
+    }
+
+    // Update the evaluation with new data
+    oxfordHappiness.participant = participant || oxfordHappiness.participant;
+    oxfordHappiness.questions = questions || oxfordHappiness.questions;
+    oxfordHappiness.happinessScore = happinessScore;
+    oxfordHappiness.date = date || oxfordHappiness.date;
+
+    // Save the updated evaluation
+    await oxfordHappiness.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Oxford Happiness Evaluation updated successfully",
+      data: oxfordHappiness,
+    });
+  } catch (error) {
+    // Handle any errors
+    console.error("Error in editOxfordHappinessEvaluation:", error);
+    res.status(500).json({
+      success: false,
+      message:
+        "An error occurred while updating the Oxford Happiness Evaluation",
+      error: error.message,
+    });
+  }
+};
+
 const deleteOxfordHappinessResult = async (req, res) => {
   try {
     const { id } = req.params;
@@ -142,5 +189,6 @@ module.exports = {
   getAllHappinessScores,
   addOxfordHappinessEvaluation,
   getHappinessScoresByParticipantId,
+  editOxfordHappinessEvaluation,
   deleteOxfordHappinessResult,
 };

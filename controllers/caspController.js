@@ -120,7 +120,6 @@ const getCASPParticipantAll = async (req, res) => {
 const updateCASPResult = async (req, res) => {
   try {
     const { id } = req.params;
-    const { questions, date, totalScore } = req.body;
 
     if (!id) {
       return res.status(400).json({
@@ -129,18 +128,9 @@ const updateCASPResult = async (req, res) => {
       });
     }
 
-    if (!questions || !date) {
-      return res.status(400).json({
-        success: false,
-        message: "Questions and date are required",
-      });
-    }
-
-    const updatedCASPDoc = await CASP.findOneAndUpdate(
-      { participant: id },
-      { $set: { questions, date, totalScore } },
-      { new: true }
-    );
+    const updatedCASPDoc = await CASP.findByIdAndUpdate(id, req.body, {
+      new: true,
+    });
 
     if (!updatedCASPDoc) {
       return res.status(404).json({

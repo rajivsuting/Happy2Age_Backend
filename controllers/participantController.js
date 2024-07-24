@@ -2,6 +2,8 @@ const Participant = require("../models/participantSchema");
 const Cohort = require("../models/cohortSchema");
 const { validateData } = require("../validator/validator");
 const logger = require("../log/logger");
+const Evaluation = require("../models/evaluationSchema");
+const Attendance = require("../models/attendanceSchema");
 
 const createParticipant = async (req, res) => {
   try {
@@ -111,6 +113,8 @@ const updateParticipant = async (req, res) => {
     const { id } = req.params;
     const participantData = req.body;
 
+    console.log(participantData);
+
     const newCohortId = participantData.cohort;
 
     // Find the participant by ID
@@ -130,7 +134,7 @@ const updateParticipant = async (req, res) => {
     }
 
     // Check if the cohort has changed
-    const oldCohortId = existingParticipant.cohort.toString();
+    const oldCohortId = existingParticipant.cohort;
     if (oldCohortId !== newCohortId) {
       // Update participant's cohort
       existingParticipant.cohort = newCohortId;

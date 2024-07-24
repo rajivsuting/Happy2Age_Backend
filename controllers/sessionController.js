@@ -289,16 +289,12 @@ const searchSessionsWithDateRange = async (req, res) => {
     const start = new Date(startDate);
     const end = new Date(endDate);
 
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      return res.status(400).json({ message: "Invalid date format" });
-    }
-
     const sessions = await Session.find({
       date: {
         $gte: start,
         $lte: end,
       },
-    }).populate("Cohort");
+    }).populate("cohort");
 
     if (sessions.length === 0) {
       return res
