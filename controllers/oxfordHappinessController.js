@@ -114,7 +114,7 @@ const editOxfordHappinessEvaluation = async (req, res) => {
   try {
     const { id } = req.params;
     const { participant, questions, date } = req.body;
-
+console.log(req.body);
     // Calculate the happiness score
     const happinessScore =
       questions.reduce((total, question) => {

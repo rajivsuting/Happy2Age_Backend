@@ -22,7 +22,29 @@ const getReportsByCohort = async (req, res) => {
         path: "session",
         match: { date: { $gte: startDate, $lte: endDate } },
       })
-      .populate("participant");
+      .populate("participant")
+      .populate("cohort")
+      .populate("activity");
+
+    //   const transformData = evaluations?.map(item => {
+    //     const domains = item.domain.map(domainItem => ({
+    //         domainName: domainItem.name,
+    //         subtopics: domainItem.subTopics
+    //     }));
+
+    //     return {
+    //         cohort: item.cohort.name,
+    //         participant: item.participant.name,
+    //         activity: item.activity.name,
+    //         session: item.session.name,
+    //         domains: domains,
+    //         grandAverage: item.grandAverage
+    //     };
+    // });
+
+    // console.log(transformData);
+
+    // const evaluations = await Evaluation.find({ cohort ,match: { date: { $gte: startDate, $lte: endDate } }})
 
     // Fetch attendance records for the cohort within the date range
     const attendanceRecords = await Attendance.find({
@@ -125,9 +147,10 @@ const getReportsByCohort = async (req, res) => {
       averageForCohort,
     };
 
-    res.status(200).json({ success: true, message: cohortReport });
+    res.status(200).json({ success: true, message: cohortReport, evaluations });
+    // res.status(200).json({ success: true,transformData});
   } catch (error) {
-    console.error(`Error fetching reports: ${error.message}`);
+    console.error(`Error fetching reports: ${error}`);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
@@ -165,14 +188,14 @@ const getIndividualReport = async (req, res) => {
     }).populate({
       path: "session",
       match: { date: { $gte: startDate, $lte: endDate } },
-    });
+    }).populate("participant").populate("cohort").populate("activity");;
 
     const cohortEvaluations = await Evaluation.find({ cohort: cohortId })
       .populate({
         path: "session",
         match: { date: { $gte: startDate, $lte: endDate } },
       })
-      .populate("participant");
+      .populate("participant").populate("cohort").populate("activity");
 
     // Fetch attendance records for the participant within the date range
     const attendanceRecords = await Attendance.find({
@@ -255,7 +278,15 @@ const getIndividualReport = async (req, res) => {
       graphDetails: graphDetails,
     };
 
-    res.status(200).json({ success: true, data: singleParticipant });
+    
+
+    res
+      .status(200)
+      .json({
+        success: true,
+        data: singleParticipant,
+        participantEvaluations,
+      });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "Internal server error" });
