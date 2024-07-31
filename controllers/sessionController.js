@@ -85,6 +85,7 @@ const getAllSessions = async (req, res) => {
         },
       })
       .populate({ path: "activity", model: "Activity" })
+      .sort({ date: -1 })
       .skip(skip)
       .limit(limitNumber);
 

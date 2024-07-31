@@ -26,6 +26,13 @@ const getReportsByCohort = async (req, res) => {
       .populate("cohort")
       .populate("activity");
 
+    if (evaluations.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No records found within this date range",
+      });
+    }
+
     //   const transformData = evaluations?.map(item => {
     //     const domains = item.domain.map(domainItem => ({
     //         domainName: domainItem.name,
@@ -51,6 +58,12 @@ const getReportsByCohort = async (req, res) => {
       cohort,
       date: { $gte: startDate, $lte: endDate },
     });
+
+    if (attendanceRecords.length === 0) {
+      return res.status(404).json({
+        message: "No records found within the specified date range",
+      });
+    }
 
     // Calculate attendance
     const attendance = attendanceRecords.filter(
@@ -185,23 +198,47 @@ const getIndividualReport = async (req, res) => {
     const participantEvaluations = await Evaluation.find({
       participant: id,
       session: { $exists: true },
-    }).populate({
-      path: "session",
-      match: { date: { $gte: startDate, $lte: endDate } },
-    }).populate("participant").populate("cohort").populate("activity");;
+    })
+      .populate({
+        path: "session",
+        match: { date: { $gte: startDate, $lte: endDate } },
+      })
+      .populate("participant")
+      .populate("cohort")
+      .populate("activity");
+
+    if (participantEvaluations.length === 0) {
+      return res.status(404).json({
+        message: "No records found within the specified date range",
+      });
+    }
 
     const cohortEvaluations = await Evaluation.find({ cohort: cohortId })
       .populate({
         path: "session",
         match: { date: { $gte: startDate, $lte: endDate } },
       })
-      .populate("participant").populate("cohort").populate("activity");
+      .populate("participant")
+      .populate("cohort")
+      .populate("activity");
+
+    if (cohortEvaluations.length === 0) {
+      return res.status(404).json({
+        message: "No records found within the specified date range",
+      });
+    }
 
     // Fetch attendance records for the participant within the date range
     const attendanceRecords = await Attendance.find({
       participant: id,
       date: { $gte: startDate, $lte: endDate },
     });
+
+    if (attendanceRecords.length === 0) {
+      return res.status(404).json({
+        message: "No records found within the specified date range",
+      });
+    }
 
     // Calculate attendance
     const attendance = attendanceRecords.filter(
@@ -278,15 +315,11 @@ const getIndividualReport = async (req, res) => {
       graphDetails: graphDetails,
     };
 
-    
-
-    res
-      .status(200)
-      .json({
-        success: true,
-        data: singleParticipant,
-        participantEvaluations,
-      });
+    res.status(200).json({
+      success: true,
+      data: singleParticipant,
+      participantEvaluations,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "Internal server error" });
