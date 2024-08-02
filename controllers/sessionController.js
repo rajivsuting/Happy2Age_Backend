@@ -310,6 +310,51 @@ const searchSessionsWithDateRange = async (req, res) => {
   }
 };
 
+const searchSessionByName = async (req, res) => {
+  try {
+    const { name } = req.query;
+
+    if (!name) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Session name is required" });
+    }
+
+    const sessions = await Session.find({
+      name: { $regex: name, $options: "i" },
+    })
+      .populate({
+        path: "cohort",
+        model: "Cohort",
+        populate: {
+          path: "participants",
+          model: "Participant",
+        },
+      })
+      .populate({ path: "activity", model: "Activity" });
+
+    if (sessions.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No sessions found" });
+    }
+
+    return res.status(200).json({ success: true, message: sessions });
+  } catch (error) {
+    console.error("Error searching sessions by name:", error);
+
+    if (error.name === "CastError") {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid ID format" });
+    }
+
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
+  }
+};
+
 module.exports = {
   createSession,
   getAllSessions,
@@ -317,4 +362,5 @@ module.exports = {
   getAttendanceByCohort,
   editSession,
   searchSessionsWithDateRange,
+  searchSessionByName,
 };
