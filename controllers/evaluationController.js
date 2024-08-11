@@ -4,6 +4,7 @@ const Domain = require("../models/domainSchema");
 const createEvaluation = async (req, res) => {
   try {
     const { cohort, session, activity, domain, participant } = req.body;
+    console.log(session);
 
     if (!cohort || !session || !activity || !domain || !participant) {
       return res
