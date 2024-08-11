@@ -29,17 +29,18 @@ app.use(cookieParser());
 
 // auth
 app.use("/auth", authRoutes);
-// app.use()
-app.use("/participant", authenticate,participantRoutes);
-app.use("/cohort", authenticate,cohortRoutes);
-app.use("/activity", authenticate,activityRoutes);
-app.use("/domain",authenticate, domainRoutes);
-app.use("/session",authenticate, sessionRoutes);
-app.use("/evaluation",authenticate, evaluationRoutes);
-app.use("/report",authenticate, reportRoutes);
-app.use("/oxford",authenticate, oxfordRoutes);
-app.use("/casp",authenticate, caspRoutes);
-app.use("/moca",authenticate, mocaRoutes);
+
+// app.use(authenticate)
+app.use("/participant", participantRoutes);
+app.use("/cohort", cohortRoutes);
+app.use("/activity", activityRoutes);
+app.use("/domain", domainRoutes);
+app.use("/session", sessionRoutes);
+app.use("/evaluation", evaluationRoutes);
+app.use("/report", reportRoutes);
+app.use("/oxford", oxfordRoutes);
+app.use("/casp", caspRoutes);
+app.use("/moca", mocaRoutes);
 
 connectDB();
 
