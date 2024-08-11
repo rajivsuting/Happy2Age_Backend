@@ -76,18 +76,35 @@ const login = async (req, res) => {
       { new: true }
     ).exec();
 
-    res
-      .status(200)
-      .cookie("token", token, {
-        maxAge: req.body.remember ? 365 * 24 * 60 * 60 * 1000 : null,
-        sameSite: "Lax",
-        httpOnly: true,
-        secure: false,
-        path: "/",
-        domain: req.hostname,
-        Partitioned: true,
-      })
-      .json({ token });
+    // res
+    //   .status(200)
+    //   .cookie("token", token, {
+    //     maxAge: req.body.remember ? 365 * 24 * 60 * 60 * 1000 : null,
+    //     sameSite: "Lax",
+    //     httpOnly: true,
+    //     secure: false,
+    //     path: "/",
+    //     domain: req.hostname,
+    //     Partitioned: true,
+    //   })
+    //   .json({ token });
+
+      res
+        .status(200)
+        .cookie("token", token, {
+          maxAge: req.body.remember ? 365 * 24 * 60 * 60 * 1000 : null, // 1 year or 1 hour
+          sameSite: "Strict",
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          path: "/",
+          domain: req.hostname,
+        })
+        .json({
+          status: true,
+          message: "Login successfully",
+          token: token
+        });
+
   } catch (error) {
     logger.error("Error logging in admin", error);
     res.status(500).json({ message: "Internal server error" });
