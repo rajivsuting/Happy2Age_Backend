@@ -18,6 +18,7 @@ const mocaRoutes = require("./routes/mocaRoutes");
 
 // auth
 const authRoutes = require("./routes/authRoutes");
+const authenticate = require("./middlewares/authenticate");
 
 const port = process.env.PORT || 3000;
 
@@ -28,6 +29,8 @@ app.use(cookieParser());
 
 // auth
 app.use("/auth", authRoutes);
+
+// app.use(authenticate)
 app.use("/participant", participantRoutes);
 app.use("/cohort", cohortRoutes);
 app.use("/activity", activityRoutes);
