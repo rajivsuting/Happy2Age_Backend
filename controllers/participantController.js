@@ -113,8 +113,6 @@ const updateParticipant = async (req, res) => {
     const { id } = req.params;
     const participantData = req.body;
 
-    console.log(participantData);
-
     const newCohortId = participantData.cohort;
 
     // Find the participant by ID
@@ -134,7 +132,7 @@ const updateParticipant = async (req, res) => {
     }
 
     // Check if the cohort has changed
-    const oldCohortId = existingParticipant.cohort;
+    const oldCohortId = existingParticipant.cohort.toString();
     if (oldCohortId !== newCohortId) {
       // Update participant's cohort
       existingParticipant.cohort = newCohortId;
