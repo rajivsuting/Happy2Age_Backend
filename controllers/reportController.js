@@ -197,6 +197,13 @@ const getReportsByCohort = async (req, res) => {
     ).length;
     const totalAttendance = attendanceRecords.length;
 
+    const total = finalGraphDetails.reduce(
+      (acc, entry) => acc + Number(entry.score),
+      0
+    );
+
+    const cohortAverage = (total / finalGraphDetails.length).toFixed(2);
+
     const cohortReport = {
       cohort: evaluations[0].cohort.name, // Use cohort's name
       attendance,
@@ -204,7 +211,7 @@ const getReportsByCohort = async (req, res) => {
       totalNumberOfSessions,
       graphDetails: overallDomainAverages,
       participantDomainScores: finalGraphDetails,
-      averageForCohort: 0,
+      averageForCohort: cohortAverage,
       evaluations,
     };
 
