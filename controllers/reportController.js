@@ -3,6 +3,7 @@ const Evaluation = require("../models/evaluationSchema");
 const Participant = require("../models/participantSchema");
 const Cohort = require("../models/cohortSchema");
 const Session = require("../models/sessionSchema");
+const { createEvaluation } = require("./evaluationController");
 /*d*/
 const getReportsByCohort = async (req, res) => {
   try {
@@ -204,6 +205,7 @@ const getReportsByCohort = async (req, res) => {
       graphDetails: overallDomainAverages,
       participantDomainScores: finalGraphDetails,
       averageForCohort: 0,
+      evaluations,
     };
 
     res.json({ success: true, message: cohortReport });
@@ -455,6 +457,7 @@ const getIndividualReport = async (req, res) => {
     res.status(200).json({
       success: true,
       data: singleParticipant,
+      evaluations,
     });
   } catch (error) {
     console.error(error);
