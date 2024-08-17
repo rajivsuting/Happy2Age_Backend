@@ -282,6 +282,17 @@ const getIndividualReport = async (req, res) => {
       .populate("participant", "name")
       .populate("cohort", "name"); // Populate cohort's name
 
+    if (evaluations.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No evaluations found within the specified date range",
+      });
+    }
+
+    const filteredEvaluations = evaluations.filter(
+      (evaluation) => evaluation.participant._id == id
+    );
+
     const groupedBySession = evaluations.reduce((acc, evaluation) => {
       const sessionId = evaluation.session._id;
       const participantId = evaluation.participant._id;
@@ -464,7 +475,7 @@ const getIndividualReport = async (req, res) => {
     res.status(200).json({
       success: true,
       data: singleParticipant,
-      evaluations,
+      evaluations: filteredEvaluations,
     });
   } catch (error) {
     console.error(error);
