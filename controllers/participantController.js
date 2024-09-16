@@ -115,6 +115,7 @@ const updateParticipant = async (req, res) => {
 
     const newCohortId = participantData.cohort;
 
+    // Find the participant by ID
     const existingParticipant = await Participant.findById(id);
     if (!existingParticipant) {
       return res
@@ -131,11 +132,11 @@ const updateParticipant = async (req, res) => {
     }
 
     // Check if the cohort has changed
-    const oldCohortId = existingParticipant.cohort || null;
-    if (oldCohortId !== null) {
-      oldCohortId.toString();
-    }
-    if (oldCohortId === null || oldCohortId !== newCohortId) {
+    const oldCohortId = existingParticipant.cohort
+      ? existingParticipant.cohort.toString()
+      : null; // Safely convert to string only if it exists
+
+    if (!oldCohortId || oldCohortId !== newCohortId.toString()) {
       // Update participant's cohort
       existingParticipant.cohort = newCohortId;
       const updatedParticipant = await existingParticipant.save();
@@ -144,10 +145,12 @@ const updateParticipant = async (req, res) => {
       await Evaluation.updateMany({ participant: id }, { cohort: newCohortId });
       await Attendance.updateMany({ participant: id }, { cohort: newCohortId });
 
-      // Remove participant from old cohort's participants array
-      await Cohort.findByIdAndUpdate(oldCohortId, {
-        $pull: { participants: id },
-      });
+      // Remove participant from old cohort's participants array, if applicable
+      if (oldCohortId) {
+        await Cohort.findByIdAndUpdate(oldCohortId, {
+          $pull: { participants: id },
+        });
+      }
 
       // Add participant to new cohort's participants array
       await Cohort.findByIdAndUpdate(newCohortId, {
@@ -156,7 +159,7 @@ const updateParticipant = async (req, res) => {
 
       return res.status(200).json({ success: true, data: updatedParticipant });
     } else {
-      // If the cohort has not changed, just update the participant data
+      // If the cohort has not changed, just update other participant data
       const updatedParticipant = await Participant.findByIdAndUpdate(
         id,
         participantData,
