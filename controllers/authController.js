@@ -58,7 +58,6 @@ const login = async (req, res) => {
       enabled: true,
     });
 
-    // Check if admin exists and password matches
     if (
       !admin ||
       !(await bcrypt.compare(admin.salt + password, admin.password))
@@ -70,41 +69,21 @@ const login = async (req, res) => {
       expiresIn: req.body.remember ? 365 * 24 + "h" : "24h",
     });
 
-    await AdminSchema.findByIdAndUpdate(
-      { _id: admin._id },
-      { $push: { loggedSessions: token } },
-      { new: true }
-    ).exec();
-
-    // res
-    //   .status(200)
-    //   .cookie("token", token, {
-    //     maxAge: req.body.remember ? 365 * 24 * 60 * 60 * 1000 : null,
-    //     sameSite: "Lax",
-    //     httpOnly: true,
-    //     secure: false,
-    //     path: "/",
-    //     domain: req.hostname,
-    //     Partitioned: true,
-    //   })
-    //   .json({ token });
-
-      res
-        .status(200)
-        .cookie("token", token, {
-          maxAge: req.body.remember ? 365 * 24 * 60 * 60 * 1000 : null, // 1 year or 1 hour
-          sameSite: "Strict",
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          path: "/",
-          domain: req.hostname,
-        })
-        .json({
-          status: true,
-          message: "Login successfully",
-          token: token
-        });
-
+    res
+      .status(200)
+      .cookie("token", token, {
+        maxAge: req.body.remember ? 365 * 24 * 60 * 60 * 1000 : null, // 1 year or 1 hour
+        sameSite: "Strict",
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+        domain: req.hostname,
+      })
+      .json({
+        status: true,
+        message: "Login successfully",
+        token: token,
+      });
   } catch (error) {
     logger.error("Error logging in admin", error);
     res.status(500).json({ message: "Internal server error" });

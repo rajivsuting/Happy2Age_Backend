@@ -10,10 +10,10 @@ const {
 } = require("../controllers/caspController");
 const authenticate = require("../middlewares/authenticate");
 
-routes.post("/add", addCASP);
-routes.get("/participant/:participantId", getCASPByParticipantId);
-routes.get("/all", getCASPParticipantAll);
-routes.patch("/edit/:id", updateCASPResult);
-routes.delete("/delete/:id", deleteCASPResult);
+routes.post("/add", authenticate, addCASP);
+routes.get("/participant/:participantId", authenticate, getCASPByParticipantId);
+routes.get("/all", authenticate, getCASPParticipantAll);
+routes.patch("/edit/:id", authenticate, updateCASPResult);
+routes.delete("/delete/:id", authenticate, deleteCASPResult);
 
 module.exports = routes;

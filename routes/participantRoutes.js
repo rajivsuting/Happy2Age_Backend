@@ -230,7 +230,7 @@ const {
  *                   example: Internal server error
  */
 
-routes.post("/create", createParticipant);
+routes.post("/create", authenticate, createParticipant);
 
 /**
  * @openapi
@@ -363,7 +363,7 @@ routes.post("/create", createParticipant);
  *                   example: Internal server error
  */
 
-routes.get("/all", getAllParticipants);
+routes.get("/all", authenticate, getAllParticipants);
 
 /**
  * @openapi
@@ -493,7 +493,7 @@ routes.get("/all", getAllParticipants);
  *                   example: Internal server error
  */
 
-routes.get("/name", searchParticipantsByName);
+routes.get("/name", authenticate, searchParticipantsByName);
 
 /**
  * @openapi
@@ -702,6 +702,6 @@ routes.get("/name", searchParticipantsByName);
  *                   example: Internal server error
  */
 
-routes.patch("/edit/:id", updateParticipant);
+routes.patch("/edit/:id", authenticate, updateParticipant);
 
 module.exports = routes;

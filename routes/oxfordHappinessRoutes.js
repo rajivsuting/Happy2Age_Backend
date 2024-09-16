@@ -10,10 +10,14 @@ const {
   editOxfordHappinessEvaluation,
 } = require("../controllers/oxfordHappinessController");
 
-routes.post("/add", addOxfordHappinessEvaluation);
-routes.get("/participant/:participantId", getHappinessScoresByParticipantId);
-routes.get("/all", getAllHappinessScores);
-routes.put("/edit/:id", editOxfordHappinessEvaluation);
-routes.delete("/delete/:id", deleteOxfordHappinessResult);
+routes.post("/add", authenticate, addOxfordHappinessEvaluation);
+routes.get(
+  "/participant/:participantId",
+  authenticate,
+  getHappinessScoresByParticipantId
+);
+routes.get("/all", authenticate, getAllHappinessScores);
+routes.put("/edit/:id", authenticate, editOxfordHappinessEvaluation);
+routes.delete("/delete/:id", authenticate, deleteOxfordHappinessResult);
 
 module.exports = routes;

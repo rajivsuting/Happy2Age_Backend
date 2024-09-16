@@ -102,7 +102,7 @@ const authenticate = require("../middlewares/authenticate");
  *                   example: Internal server error
  */
 
-routes.post("/create", createCohort);
+routes.post("/create", authenticate, createCohort);
 
 /**
  * @openapi
@@ -232,7 +232,7 @@ routes.post("/create", createCohort);
  *                   example: Internal server error
  */
 
-routes.get("/all", getAllCohorts);
+routes.get("/all", authenticate, getAllCohorts);
 
 /**
  * @openapi
@@ -340,7 +340,7 @@ routes.get("/all", getAllCohorts);
  *                   example: Internal server error
  */
 
-routes.get("/name", searchCohortByName);
+routes.get("/name", authenticate, searchCohortByName);
 
 /**
  * @openapi
@@ -446,7 +446,7 @@ routes.get("/name", searchCohortByName);
  *                   example: Internal server error
  */
 
-routes.patch("/edit/:id", updateCohort);
+routes.patch("/edit/:id", authenticate, updateCohort);
 
 /**
  * @openapi
@@ -519,6 +519,6 @@ routes.patch("/edit/:id", updateCohort);
  *                   example: Internal server error
  */
 
-routes.delete("/delete/:id", deleteCohort);
+routes.delete("/delete/:id", authenticate, deleteCohort);
 
 module.exports = routes;

@@ -148,7 +148,7 @@ const authenticate = require("../middlewares/authenticate");
  *                   example: 'Internal server error'
  */
 
-routes.get("/get", getReportsByCohort);
+routes.get("/get", authenticate, getReportsByCohort);
 
 /**
  * @openapi
@@ -290,6 +290,6 @@ routes.get("/get", getReportsByCohort);
  *                   example: 'Internal server error'
  */
 
-routes.get("/:id", getIndividualReport);
+routes.get("/:id", authenticate, getIndividualReport);
 
 module.exports = routes;

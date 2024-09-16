@@ -129,7 +129,7 @@ const authenticate = require("../middlewares/authenticate");
  *                   example: 'Internal server error'
  */
 
-routes.post("/create", createSession);
+routes.post("/create", authenticate, createSession);
 
 /**
  * @openapi
@@ -247,7 +247,7 @@ routes.post("/create", createSession);
  *                   example: 'Internal server error'
  */
 
-routes.get("/all", getAllSessions);
+routes.get("/all", authenticate, getAllSessions);
 
 /**
  * @openapi
@@ -336,7 +336,7 @@ routes.get("/all", getAllSessions);
  *                   example: 'Internal server error'
  */
 
-routes.get("/attendance", getAllParticipantsAttendance);
+routes.get("/attendance", authenticate, getAllParticipantsAttendance);
 
 /**
  * @openapi
@@ -402,7 +402,7 @@ routes.get("/attendance", getAllParticipantsAttendance);
  *                   example: 'Internal server error'
  */
 
-routes.get("/attendencecohort/:cohortId", getAttendanceByCohort);
+routes.get("/attendencecohort/:cohortId", authenticate, getAttendanceByCohort);
 
 /**
  * @openapi
@@ -527,7 +527,7 @@ routes.get("/attendencecohort/:cohortId", getAttendanceByCohort);
  *                   example: 'Internal server error'
  */
 
-routes.patch("/edit/:id", editSession);
+routes.patch("/edit/:id", authenticate, editSession);
 
 /**
  * @openapi
@@ -626,7 +626,7 @@ routes.patch("/edit/:id", editSession);
  *                   example: 'Internal server error'
  */
 
-routes.get("/sessions/search", searchSessionsWithDateRange);
+routes.get("/sessions/search", authenticate, searchSessionsWithDateRange);
 /**
  * @openapi
  * /sessions/name:
@@ -730,6 +730,6 @@ routes.get("/sessions/search", searchSessionsWithDateRange);
  *                   example: 'Internal server error'
  */
 
-routes.get("/name", searchSessionByName);
+routes.get("/name", authenticate, searchSessionByName);
 
 module.exports = routes;

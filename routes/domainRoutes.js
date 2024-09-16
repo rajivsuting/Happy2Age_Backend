@@ -119,7 +119,7 @@ const authenticate = require("../middlewares/authenticate");
  *                   example: 'Internal server error'
  */
 
-routes.post("/create", createDomain);
+routes.post("/create", authenticate, createDomain);
 /**
  * @openapi
  * /domain/all:
@@ -206,7 +206,7 @@ routes.post("/create", createDomain);
  *                   example: 'Internal server error'
  */
 
-routes.get("/all", getAllDomains);
+routes.get("/all", authenticate, getAllDomains);
 
 /**
  * @openapi
@@ -292,7 +292,7 @@ routes.get("/all", getAllDomains);
  *                   example: 'Internal server error'
  */
 
-routes.get("/:id", getDomainById);
+routes.get("/:id", authenticate, getDomainById);
 
 /**
  * @openapi
@@ -401,7 +401,7 @@ routes.get("/:id", getDomainById);
  *                   example: 'Internal server error'
  */
 
-routes.patch("/edit/:id", updateDomain);
+routes.patch("/edit/:id", authenticate, updateDomain);
 
 /**
  * @openapi
@@ -452,6 +452,6 @@ routes.patch("/edit/:id", updateDomain);
  *                   example: 'Internal server error'
  */
 
-routes.delete("/domains/:id", deleteDomain);
+routes.delete("/domains/:id", authenticate, deleteDomain);
 
 module.exports = routes;
