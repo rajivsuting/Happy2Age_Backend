@@ -295,7 +295,9 @@ const searchSessionsWithDateRange = async (req, res) => {
         $gte: start,
         $lte: end,
       },
-    }).populate("cohort");
+    })
+      .populate("cohort")
+      .populate("activity");
 
     if (sessions.length === 0) {
       return res

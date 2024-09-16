@@ -112,11 +112,9 @@ const updateParticipant = async (req, res) => {
   try {
     const { id } = req.params;
     const participantData = req.body;
-    console.log(participantData);
 
     const newCohortId = participantData.cohort;
 
-    // Find the participant by ID
     const existingParticipant = await Participant.findById(id);
     if (!existingParticipant) {
       return res

@@ -1,8 +1,35 @@
 const express = require("express");
-const app = express();
+
 const cors = require("cors");
 require("dotenv/config");
 const cookieParser = require("cookie-parser");
+
+const swaggerUI = require("swagger-ui-express");
+const swaggerJsDoc = require("swagger-jsdoc");
+
+const options = {
+  swaggerDefinition: {
+    openapi: "3.0.0",
+    info: {
+      title: "Happy2Age API",
+      version: "1.0.0",
+      description: "API for managing Happy2Age data",
+    },
+    servers: [
+      {
+        url: "https://happy2age-backend-gn8ln.ondigitalocean.app",
+        description: "Production server",
+      },
+    ],
+  },
+  apis: ["./routes/*.js"],
+};
+
+const specs = swaggerJsDoc(options);
+
+const app = express();
+
+app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(specs));
 
 const connectDB = require("./db/connectDb");
 const participantRoutes = require("./routes/participantRoutes");
