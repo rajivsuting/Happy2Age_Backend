@@ -2,6 +2,7 @@ const Session = require("../models/sessionSchema");
 const mongoose = require("mongoose");
 const Cohort = require("../models/cohortSchema");
 const Attendance = require("../models/attendanceSchema");
+const Evaluation = require("../models/evaluationSchema");
 
 const createSession = async (req, res) => {
   const { name, cohort, activity, date, participants, numberOfMins } = req.body;
@@ -107,18 +108,10 @@ const getAllSessions = async (req, res) => {
 
 const getAllParticipantsAttendance = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
-
-    // Fetch total attendance records count
-    const totalRecords = await Attendance.countDocuments();
-
-    // Fetch paginated attendance records
-    const attendanceRecords = await Attendance.find()
-      .populate("participant session")
-      .skip(skip)
-      .limit(limit);
+    // Fetch all attendance records
+    const attendanceRecords = await Attendance.find().populate(
+      "participant session"
+    );
 
     // Map attendance records to participants
     const participantAttendanceMap = {};
@@ -143,19 +136,10 @@ const getAllParticipantsAttendance = async (req, res) => {
     // Convert the map to an array
     const participantAttendanceList = Object.values(participantAttendanceMap);
 
-    // Calculate total pages
-    const totalPages = Math.ceil(totalRecords / limit);
-
-    // Respond with the formatted attendance data and pagination info
+    // Respond with the formatted attendance data
     res.status(200).json({
       success: true,
       data: participantAttendanceList,
-      pagination: {
-        totalRecords,
-        totalPages,
-        currentPage: page,
-        pageSize: limit,
-      },
     });
   } catch (error) {
     console.error(`Error fetching participants' attendance: ${error.message}`);
@@ -357,6 +341,47 @@ const searchSessionByName = async (req, res) => {
   }
 };
 
+const deleteSession = async (req, res) => {
+  const { sessionId } = req.query; // Extract from req.query instead of req.params
+
+  try {
+    // Find the session by ID
+    const session = await Session.findById(sessionId).populate("cohort");
+    if (!session) {
+      return res.status(404).json({ message: "Session not found" });
+    }
+
+    // Get the cohort document
+    const cohort = session.cohort;
+    if (!cohort) {
+      return res
+        .status(404)
+        .json({ message: "Cohort not found for this session" });
+    }
+
+    // Remove all attendance records related to this session
+    await Attendance.deleteMany({ session: sessionId });
+
+    // Remove session from the cohort's sessions array
+    cohort.sessions = cohort.sessions.filter((s) => s.toString() !== sessionId);
+    await cohort.save();
+
+    // Delete all evaluations related to the session
+    await Evaluation.deleteMany({ session: sessionId });
+
+    // Delete the session
+    await Session.findByIdAndDelete(sessionId);
+
+    res.status(200).json({
+      message:
+        "Session, evaluations, and related references deleted successfully",
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   createSession,
   getAllSessions,
@@ -365,4 +390,5 @@ module.exports = {
   editSession,
   searchSessionsWithDateRange,
   searchSessionByName,
+  deleteSession,
 };

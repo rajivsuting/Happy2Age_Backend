@@ -1,5 +1,6 @@
 const Evaluation = require("../models/evaluationSchema");
 const Domain = require("../models/domainSchema");
+const Participant = require("../models/participantSchema");
 
 const createEvaluation = async (req, res) => {
   try {
@@ -56,19 +57,45 @@ const createEvaluation = async (req, res) => {
 
 const getAllEvaluation = async (req, res) => {
   try {
+    // Get page and limit from the query parameters or set default values
+    const page = parseInt(req.query.page) || 1; // Default to page 1
+    const limit = parseInt(req.query.limit) || 10; // Default to 10 documents per page
+
+    // Calculate how many documents to skip
+    const skip = (page - 1) * limit;
+
+    // Fetch the total number of documents for pagination info
+    const totalEvaluations = await Evaluation.countDocuments();
+
+    // Fetch evaluations with pagination
     const evaluations = await Evaluation.find()
       .populate("participant")
       .populate("cohort")
       .populate("activity")
-      .populate("session");
+      .populate("session")
+      .skip(skip) // Skip documents based on the page number
+      .limit(limit); // Limit the number of documents returned
 
+    // If no evaluations are found
     if (evaluations.length === 0) {
       return res
         .status(404)
         .json({ success: false, message: "No evaluations found" });
     }
 
-    res.status(200).json({ success: true, message: evaluations });
+    // Respond with paginated data and pagination details
+    res.status(200).json({
+      success: true,
+      data: evaluations,
+      pagination: {
+        total: totalEvaluations,
+        page,
+        limit,
+        totalPages: Math.ceil(totalEvaluations / limit),
+        hasNextPage: page * limit < totalEvaluations,
+        hasPreviousPage: page > 1,
+      },
+    });
   } catch (error) {
     console.error("Error fetching evaluations:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
@@ -153,9 +180,59 @@ const updateEvaluation = async (req, res) => {
   }
 };
 
+const searchEvaluationsByParticipantName = async (req, res) => {
+  const { name } = req.query; // Get the participant's name from the query parameter
+
+  try {
+    // Find participants that match the name (case-insensitive search)
+    const participants = await Participant.find({
+      name: { $regex: name, $options: "i" },
+    });
+
+    if (participants.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `No participants found with the name "${name}"`,
+      });
+    }
+
+    // Extract participant IDs to find evaluations
+    const participantIds = participants.map((p) => p._id);
+
+    // Find evaluations related to the participant IDs
+    const evaluations = await Evaluation.find({
+      participant: { $in: participantIds },
+    })
+      .populate("participant") // Populate participant details
+      .populate("cohort") // Populate cohort details
+      .populate("activity") // Populate activity details
+      .populate("session"); // Populate session details
+
+    if (evaluations.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `No evaluations found for participants with the name "${name}"`,
+      });
+    }
+
+    // Return evaluations
+    res.status(200).json({
+      success: true,
+      data: evaluations,
+    });
+  } catch (error) {
+    console.error("Error searching evaluations:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
 module.exports = {
   createEvaluation,
   getAllEvaluation,
   deleteEvaluation,
   updateEvaluation,
+  searchEvaluationsByParticipantName,
 };

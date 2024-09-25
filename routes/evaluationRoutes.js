@@ -6,6 +6,7 @@ const {
   getAllEvaluation,
   deleteEvaluation,
   updateEvaluation,
+  searchEvaluationsByParticipantName,
 } = require("../controllers/evaluationController");
 const authenticate = require("../middlewares/authenticate");
 
@@ -432,5 +433,7 @@ routes.delete("/:id", authenticate, deleteEvaluation);
  */
 
 routes.patch("/:id", authenticate, updateEvaluation);
+
+routes.get("/search", authenticate, searchEvaluationsByParticipantName);
 
 module.exports = routes;

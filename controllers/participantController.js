@@ -152,14 +152,12 @@ const updateParticipant = async (req, res) => {
         });
       }
 
-      // Add participant to new cohort's participants array
       await Cohort.findByIdAndUpdate(newCohortId, {
         $addToSet: { participants: id },
       });
 
       return res.status(200).json({ success: true, data: updatedParticipant });
     } else {
-      // If the cohort has not changed, just update other participant data
       const updatedParticipant = await Participant.findByIdAndUpdate(
         id,
         participantData,

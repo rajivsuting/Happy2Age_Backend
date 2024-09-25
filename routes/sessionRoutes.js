@@ -9,6 +9,7 @@ const {
   editSession,
   searchSessionsWithDateRange,
   searchSessionByName,
+  deleteSession,
 } = require("../controllers/sessionController");
 const authenticate = require("../middlewares/authenticate");
 
@@ -731,5 +732,7 @@ routes.get("/sessions/search", authenticate, searchSessionsWithDateRange);
  */
 
 routes.get("/name", authenticate, searchSessionByName);
+
+routes.delete("/delete", authenticate, deleteSession);
 
 module.exports = routes;
