@@ -34,17 +34,29 @@ const createActivity = async (req, res) => {
 const getAllActivities = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
+    let limit = parseInt(req.query.limit);
+
+    // If limit is not provided or invalid, set it to null to fetch all documents
+    if (!limit || isNaN(limit)) {
+      limit = null;
+    }
+
+    const skip = (page - 1) * (limit || 0);
 
     // Find the total number of activities
     const totalActivities = await Activity.countDocuments();
 
-    // Calculate total pages
-    const totalPages = Math.ceil(totalActivities / limit);
+    // Calculate total pages only if limit is provided, otherwise set it to 1
+    const totalPages = limit ? Math.ceil(totalActivities / limit) : 1;
 
-    // Fetch paginated activities
-    const activities = await Activity.find().skip(skip).limit(limit);
+    // Fetch activities
+    const query = Activity.find();
+
+    if (limit) {
+      query.skip(skip).limit(limit);
+    }
+
+    const activities = await query;
 
     if (activities.length === 0) {
       return res
@@ -59,7 +71,7 @@ const getAllActivities = async (req, res) => {
         totalActivities,
         totalPages,
         currentPage: page,
-        pageSize: limit,
+        pageSize: limit || totalActivities, // Set pageSize to totalActivities if no limit is provided
       },
     });
   } catch (error) {
