@@ -58,25 +58,10 @@ const createSession = async (req, res) => {
 
 const getAllSessions = async (req, res) => {
   try {
-    const { page = 1, limit = 10 } = req.query;
+    const { page, limit } = req.query;
 
-    const pageNumber = parseInt(page);
-    const limitNumber = parseInt(limit);
-
-    if (
-      isNaN(pageNumber) ||
-      isNaN(limitNumber) ||
-      pageNumber < 1 ||
-      limitNumber < 1
-    ) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid page or limit value" });
-    }
-
-    const skip = (pageNumber - 1) * limitNumber;
-
-    const sessions = await Session.find()
+    // Check if pagination parameters are provided
+    let sessionsQuery = Session.find()
       .populate({
         path: "cohort",
         model: "Cohort",
@@ -86,11 +71,36 @@ const getAllSessions = async (req, res) => {
         },
       })
       .populate({ path: "activity", model: "Activity" })
-      .sort({ date: -1 })
-      .skip(skip)
-      .limit(limitNumber);
+      .sort({ date: -1 });
 
-    return res.status(200).json({ success: true, message: sessions });
+    if (page && limit) {
+      const pageNumber = parseInt(page);
+      const limitNumber = parseInt(limit);
+
+      // Validate pagination parameters
+      if (
+        isNaN(pageNumber) ||
+        isNaN(limitNumber) ||
+        pageNumber < 1 ||
+        limitNumber < 1
+      ) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Invalid page or limit value" });
+      }
+
+      const skip = (pageNumber - 1) * limitNumber;
+      sessionsQuery = sessionsQuery.skip(skip).limit(limitNumber);
+    }
+
+    const sessions = await sessionsQuery;
+
+    // Send the sessions as a response
+    return res.status(200).json({
+      success: true,
+      message: "Sessions retrieved successfully",
+      data: sessions,
+    });
   } catch (error) {
     console.error("Error fetching sessions:", error);
 
