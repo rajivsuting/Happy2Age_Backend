@@ -60,24 +60,21 @@ const getAllSessions = async (req, res) => {
   try {
     const { page, limit } = req.query;
 
-    // Check if pagination parameters are provided
+    // Initialize the base query for sessions
     let sessionsQuery = Session.find()
       .populate({
         path: "cohort",
         model: "Cohort",
-        populate: {
-          path: "participants",
-          model: "Participant",
-        },
+        populate: { path: "participants", model: "Participant" },
       })
       .populate({ path: "activity", model: "Activity" })
       .sort({ date: -1 });
 
+    // Pagination logic
     if (page && limit) {
       const pageNumber = parseInt(page);
       const limitNumber = parseInt(limit);
 
-      // Validate pagination parameters
       if (
         isNaN(pageNumber) ||
         isNaN(limitNumber) ||
@@ -93,13 +90,20 @@ const getAllSessions = async (req, res) => {
       sessionsQuery = sessionsQuery.skip(skip).limit(limitNumber);
     }
 
+    // Count total sessions
+    const totalCount = await Session.countDocuments();
+
+    // Fetch sessions
     const sessions = await sessionsQuery;
 
-    // Send the sessions as a response
+    // Return response
     return res.status(200).json({
+      count: sessions.length,
       success: true,
-      message: "Sessions retrieved successfully",
-      data: sessions,
+      message: sessions,
+      totalCount, // Include total count of sessions in the response
+      currentPage: page || 1, // Include the current page number in the response
+      totalPages: limit ? Math.ceil(totalCount / limit) : 1, // Calculate total pages if pagination is applied
     });
   } catch (error) {
     console.error("Error fetching sessions:", error);
@@ -115,7 +119,6 @@ const getAllSessions = async (req, res) => {
       .json({ success: false, message: "Internal server error" });
   }
 };
-
 const getAllParticipantsAttendance = async (req, res) => {
   try {
     // Fetch all attendance records
