@@ -4,6 +4,7 @@ const Participant = require("../models/participantSchema");
 const Cohort = require("../models/cohortSchema");
 const Session = require("../models/sessionSchema");
 const { createEvaluation } = require("./evaluationController");
+const { default: mongoose } = require("mongoose");
 /*d*/
 const getReportsByCohort = async (req, res) => {
   try {
@@ -15,43 +16,99 @@ const getReportsByCohort = async (req, res) => {
         .json({ success: false, message: "Cohort is required" });
     }
 
+    // Find cohort document
     const cohortDoc = await Cohort.findById(cohort);
-
     if (!cohortDoc) {
       return res
         .status(404)
-        .json({ success: false, message: "No cohort found with id " + cohort });
+        .json({ success: false, message: "No cohort found with ID " + cohort });
     }
 
     const startDate = new Date(start);
     const endDate = new Date(end);
 
-    const evaluations = await Evaluation.find({ cohort })
-      .populate({
-        path: "session",
-        match: { date: { $gte: startDate, $lte: endDate } },
-      })
-      .populate("participant", "name")
-      .populate("cohort", "name"); // Populate cohort's name
+    // Find evaluations with populated fields
+    const evaluations = await Evaluation.aggregate([
+      {
+        $lookup: {
+          from: "sessions", // Matches the collection name for Session
+          localField: "session",
+          foreignField: "_id",
+          as: "session",
+        },
+      },
+      {
+        $unwind: "$session", // Flatten the session array
+      },
+      {
+        $match: {
+          "session.date": { $gte: startDate, $lte: endDate }, // Filter by session date
+        },
+      },
+      {
+        $lookup: {
+          from: "participants", // Matches the collection name for Participant
+          localField: "participant",
+          foreignField: "_id",
+          as: "participant",
+        },
+      },
+      {
+        $lookup: {
+          from: "cohorts", // Matches the collection name for Cohort
+          localField: "cohort",
+          foreignField: "_id",
+          as: "cohort",
+        },
+      },
+      {
+        $project: {
+          cohort: { $arrayElemAt: ["$cohort", 0] }, // Extract first item (if it's an array)
+          participant: { $arrayElemAt: ["$participant", 0] },
+          session: 1,
+          activity: 1,
+          domain: 1,
+          grandAverage: 1,
+        },
+      },
+    ]);
 
+    if (!evaluations || evaluations.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No evaluations found for this cohort within the date range",
+      });
+    }
+
+    // Group by session
     const groupedBySession = evaluations.reduce((acc, evaluation) => {
-      const sessionId = evaluation.session._id;
-      const participantId = evaluation.participant._id;
+      const session = evaluation.session;
+      const participant = evaluation.participant;
+
+      if (!session || !participant) {
+        console.warn(
+          "Skipping evaluation with missing session or participant:",
+          evaluation
+        );
+        return acc; // Skip if session or participant is missing
+      }
+
+      const sessionId = session._id;
+      const participantId = participant._id;
 
       if (!acc[sessionId]) {
         acc[sessionId] = {
-          session: evaluation.session,
+          session,
           evaluations: [],
         };
       }
 
-      // Find if the evaluation for the same participant already exists
+      // Find existing evaluation
       const existingEvaluation = acc[sessionId].evaluations.find(
         (eval) => eval.participant._id.toString() === participantId.toString()
       );
 
       if (existingEvaluation) {
-        // Update existing evaluation with the new domain scores
         evaluation.domain.forEach((newDomain) => {
           const existingDomain = existingEvaluation.domain.find(
             (dom) => dom._id.toString() === newDomain._id.toString()
@@ -70,7 +127,6 @@ const getReportsByCohort = async (req, res) => {
           }
         });
       } else {
-        // Initialize totalScore and count for each domain
         evaluation.domain.forEach((domain) => {
           domain.totalScore = parseFloat(domain.average);
           domain.count = 1;
@@ -81,14 +137,13 @@ const getReportsByCohort = async (req, res) => {
       return acc;
     }, {});
 
-    // Transform the data to the required format
+    // Transform and calculate data (no changes here)
     const graphDetails = [];
-
     Object.values(groupedBySession).forEach(({ session, evaluations }) => {
       evaluations.forEach((evaluation) => {
         evaluation.domain.forEach((domain) => {
           graphDetails.push({
-            participant: evaluation.participant.name, // Use participant's name
+            participant: evaluation.participant.name,
             domainName: domain.name,
             session: session.name,
             average: parseFloat(domain.average),
@@ -217,7 +272,7 @@ const getReportsByCohort = async (req, res) => {
 
     res.json({ success: true, message: cohortReport });
   } catch (error) {
-    console.error(`Error fetching reports: ${error}`);
+    console.error(`Error fetching reports: ${error.message}`);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
@@ -274,13 +329,18 @@ const getIndividualReport = async (req, res) => {
     }
 
     const cohort = participantDetails.cohort._id;
-    const evaluations = await Evaluation.find({ cohort })
+    let evaluations = await Evaluation.find({ cohort })
       .populate({
         path: "session",
-        match: { date: { $gte: startDate, $lte: endDate } },
+        match: { date: { $gte: startDate, $lte: endDate } }, // Filters the populated sessions
       })
       .populate("participant", "name")
-      .populate("cohort", "name"); // Populate cohort's name
+      .populate("cohort", "name");
+
+    // Filter out evaluations where session is null (because it didn't match the date range)
+    evaluations = evaluations.filter(
+      (evaluation) => evaluation.session !== null
+    );
 
     if (evaluations.length === 0) {
       return res.status(404).json({
@@ -306,7 +366,10 @@ const getIndividualReport = async (req, res) => {
 
       // Find if the evaluation for the same participant already exists
       const existingEvaluation = acc[sessionId].evaluations.find(
-        (eval) => eval.participant._id.toString() === participantId.toString()
+        (eval) =>
+          eval.participant._id &&
+          participantId &&
+          eval.participant._id.toString() === participantId.toString()
       );
 
       if (existingEvaluation) {
