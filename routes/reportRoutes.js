@@ -148,7 +148,7 @@ const authenticate = require("../middlewares/authenticate");
  *                   example: 'Internal server error'
  */
 
-routes.get("/get", authenticate, getReportsByCohort);
+routes.get("/get", getReportsByCohort);
 
 /**
  * @openapi

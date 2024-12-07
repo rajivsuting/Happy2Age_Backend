@@ -28,50 +28,17 @@ const getReportsByCohort = async (req, res) => {
     const endDate = new Date(end);
 
     // Find evaluations with populated fields
-    const evaluations = await Evaluation.aggregate([
-      {
-        $lookup: {
-          from: "sessions", // Matches the collection name for Session
-          localField: "session",
-          foreignField: "_id",
-          as: "session",
-        },
-      },
-      {
-        $unwind: "$session", // Flatten the session array
-      },
-      {
-        $match: {
-          "session.date": { $gte: startDate, $lte: endDate }, // Filter by session date
-        },
-      },
-      {
-        $lookup: {
-          from: "participants", // Matches the collection name for Participant
-          localField: "participant",
-          foreignField: "_id",
-          as: "participant",
-        },
-      },
-      {
-        $lookup: {
-          from: "cohorts", // Matches the collection name for Cohort
-          localField: "cohort",
-          foreignField: "_id",
-          as: "cohort",
-        },
-      },
-      {
-        $project: {
-          cohort: { $arrayElemAt: ["$cohort", 0] }, // Extract first item (if it's an array)
-          participant: { $arrayElemAt: ["$participant", 0] },
-          session: 1,
-          activity: 1,
-          domain: 1,
-          grandAverage: 1,
-        },
-      },
-    ]);
+    let evaluations = await Evaluation.find({ cohort })
+      .populate({
+        path: "session",
+        match: { date: { $gte: startDate, $lte: endDate } },
+      })
+      .populate("participant", "name")
+      .populate("cohort", "name"); // Populate cohort's name
+
+    evaluations = evaluations.filter(
+      (evaluation) => evaluation.session !== null
+    );
 
     if (!evaluations || evaluations.length === 0) {
       return res.status(404).json({
