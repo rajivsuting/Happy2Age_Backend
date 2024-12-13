@@ -527,4 +527,93 @@ const addCenterAverage = (details, domainAverages) => {
   }));
 };
 
-module.exports = { getReportsByCohort, getIndividualReport };
+const getReportsForAllCohorts = async (req, res) => {
+  try {
+    const { start, end } = req.query;
+
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+
+    // Fetch all cohorts
+    const cohorts = await Cohort.find();
+
+    if (!cohorts || cohorts.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No cohorts found",
+      });
+    }
+
+    // Prepare graphDetails for all cohorts
+    const graphDetails = [];
+
+    for (const cohort of cohorts) {
+      const cohortId = cohort._id;
+
+      // Find evaluations for the current cohort
+      let evaluations = await Evaluation.find({ cohort: cohortId })
+        .populate({
+          path: "session",
+          match: { date: { $gte: startDate, $lte: endDate } },
+        })
+        .populate("participant", "name")
+        .populate("cohort", "name"); // Populate cohort's name
+
+      // Filter out evaluations with null sessions
+      evaluations = evaluations.filter(
+        (evaluation) => evaluation.session !== null
+      );
+
+      if (!evaluations || evaluations.length === 0) {
+        continue; // Skip this cohort if no evaluations are found
+      }
+
+      // Group by domain for each cohort
+      const domainData = {};
+
+      evaluations.forEach((evaluation) => {
+        evaluation.domain.forEach((domain) => {
+          const domainName = domain.name;
+
+          if (!domainData[domainName]) {
+            domainData[domainName] = {
+              domainName,
+              totalScore: 0,
+              count: 0,
+            };
+          }
+
+          domainData[domainName].totalScore += parseFloat(domain.average);
+          domainData[domainName].count += 1;
+        });
+      });
+
+      // Add domain averages to graphDetails
+      Object.values(domainData).forEach((data) => {
+        graphDetails.push({
+          domainName: data.domainName,
+          average: (data.totalScore / data.count).toFixed(2),
+          cohort: cohort.name,
+        });
+      });
+    }
+
+    // Return graph details
+    res.json({
+      success: true,
+      message: graphDetails,
+    });
+  } catch (error) {
+    console.error(`Error fetching reports: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+module.exports = {
+  getReportsByCohort,
+  getIndividualReport,
+  getReportsForAllCohorts,
+};

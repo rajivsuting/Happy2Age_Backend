@@ -4,6 +4,7 @@ const routes = express.Router();
 const {
   getReportsByCohort,
   getIndividualReport,
+  getReportsForAllCohorts,
 } = require("../controllers/reportController");
 const authenticate = require("../middlewares/authenticate");
 
@@ -291,5 +292,7 @@ routes.get("/get", getReportsByCohort);
  */
 
 routes.get("/:id", authenticate, getIndividualReport);
+
+routes.get("/cohort/all", getReportsForAllCohorts);
 
 module.exports = routes;
