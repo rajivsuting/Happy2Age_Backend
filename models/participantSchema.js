@@ -66,6 +66,12 @@ const participantSchema = new Schema(
     briefBackground: {
       type: String,
       required: true,
+      validate: {
+        validator: function (v) {
+          return v.split(" ").length <= 100; // Limit to 100 words
+        },
+        message: "Brief background must not exceed 100 words.",
+      },
     },
     emergencyContact: {
       name: {

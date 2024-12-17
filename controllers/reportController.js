@@ -8,13 +8,14 @@ const { default: mongoose } = require("mongoose");
 /*d*/
 const getReportsByCohort = async (req, res) => {
   try {
-    const { cohort, start, end } = req.query;
+    const { cohort, start, end, type } = req.query; // Extract 'type' from req.query
 
     if (!cohort) {
       return res
         .status(400)
         .json({ success: false, message: "Cohort is required" });
     }
+    console.log(type);
 
     // Find cohort document
     const cohortDoc = await Cohort.findById(cohort);
@@ -27,18 +28,29 @@ const getReportsByCohort = async (req, res) => {
     const startDate = new Date(start);
     const endDate = new Date(end);
 
-    // Find evaluations with populated fields
+    // Fetch evaluations with populated fields
     let evaluations = await Evaluation.find({ cohort })
       .populate({
         path: "session",
         match: { date: { $gte: startDate, $lte: endDate } },
       })
-      .populate("participant", "name")
-      .populate("cohort", "name"); // Populate cohort's name
+      .populate("participant")
+      .populate("cohort", "name");
 
+    // Filter out evaluations with null sessions
     evaluations = evaluations.filter(
       (evaluation) => evaluation.session !== null
     );
+
+    // Filter based on participantType if 'type' is provided
+    // Filter based on participantType if 'type' is provided and not "All"
+    if (type && type !== "All") {
+      evaluations = evaluations.filter(
+        (evaluation) =>
+          evaluation.participant &&
+          evaluation.participant.participantType === type
+      );
+    }
 
     if (!evaluations || evaluations.length === 0) {
       return res.status(404).json({
@@ -47,7 +59,7 @@ const getReportsByCohort = async (req, res) => {
       });
     }
 
-    // Group by session
+    // Group by session and perform calculations
     const groupedBySession = evaluations.reduce((acc, evaluation) => {
       const session = evaluation.session;
       const participant = evaluation.participant;
@@ -57,7 +69,7 @@ const getReportsByCohort = async (req, res) => {
           "Skipping evaluation with missing session or participant:",
           evaluation
         );
-        return acc; // Skip if session or participant is missing
+        return acc;
       }
 
       const sessionId = session._id;
@@ -104,7 +116,7 @@ const getReportsByCohort = async (req, res) => {
       return acc;
     }, {});
 
-    // Transform and calculate data (no changes here)
+    // Continue with the existing transformations
     const graphDetails = [];
     Object.values(groupedBySession).forEach(({ session, evaluations }) => {
       evaluations.forEach((evaluation) => {
@@ -119,7 +131,7 @@ const getReportsByCohort = async (req, res) => {
       });
     });
 
-    // Calculate the average of averages for each domain for each participant
+    // Aggregation logic
     const aggregatedData = {};
 
     graphDetails.forEach((detail) => {
@@ -144,7 +156,7 @@ const getReportsByCohort = async (req, res) => {
       participant: item.participant,
     }));
 
-    // Calculate the average of the averages for each domain for all participants
+    // Session domain averages
     const sessionDomainData = {};
 
     graphDetails.forEach((detail) => {
@@ -172,7 +184,7 @@ const getReportsByCohort = async (req, res) => {
       })
     );
 
-    // Calculate the overall average for each domain across all sessions
+    // Overall domain averages
     const overallDomainData = {};
 
     finalSessionDomainAverages.forEach((item) => {
@@ -198,6 +210,7 @@ const getReportsByCohort = async (req, res) => {
       })
     );
 
+    // Attendance logic
     const attendanceRecords = await Attendance.find({
       cohort,
       date: { $gte: startDate, $lte: endDate },
@@ -205,15 +218,12 @@ const getReportsByCohort = async (req, res) => {
 
     const totalNumberOfSessions = cohortDoc.sessions.length;
 
-    // console.log(evaluations[0].cohort.sessions);
-
     if (attendanceRecords.length === 0) {
       return res.status(404).json({
         message: "No records found within the specified date range",
       });
     }
 
-    // Calculate attendance
     const attendance = attendanceRecords.filter(
       (record) => record.present
     ).length;
@@ -227,7 +237,7 @@ const getReportsByCohort = async (req, res) => {
     const cohortAverage = (total / finalGraphDetails.length).toFixed(2);
 
     const cohortReport = {
-      cohort: evaluations[0].cohort.name, // Use cohort's name
+      cohort: evaluations[0].cohort.name,
       attendance,
       totalAttendance,
       totalNumberOfSessions,
@@ -544,9 +554,38 @@ const getReportsForAllCohorts = async (req, res) => {
       });
     }
 
-    // Prepare graphDetails for all cohorts
-    const graphDetails = [];
+    // Fetch all participants
+    const participants = await Participant.find();
 
+    // Data holders
+    const graphDetails = [];
+    const genderData = [
+      { gender: "Male", count: 0 },
+      { gender: "Female", count: 0 },
+      { gender: "Other", count: 0 },
+    ];
+    const participantTypeData = [
+      { participantType: "General", count: 0 },
+      { participantType: "Special Need", count: 0 },
+    ];
+
+    // Process genderData and participantTypeData
+    participants.forEach((participant) => {
+      // Increment gender count
+      const genderIndex = genderData.findIndex(
+        (item) => item.gender === participant.gender
+      );
+      if (genderIndex !== -1) genderData[genderIndex].count++;
+
+      // Increment participantType count
+      const typeIndex = participantTypeData.findIndex(
+        (item) => item.participantType === participant.participantType
+      );
+      if (typeIndex !== -1) participantTypeData[typeIndex].count++;
+    });
+
+    // Process each cohort's evaluations
+    const domainData = [];
     for (const cohort of cohorts) {
       const cohortId = cohort._id;
 
@@ -556,8 +595,8 @@ const getReportsForAllCohorts = async (req, res) => {
           path: "session",
           match: { date: { $gte: startDate, $lte: endDate } },
         })
-        .populate("participant", "name")
-        .populate("cohort", "name"); // Populate cohort's name
+        .populate("participant", "name gender dob participantType cohort")
+        .populate("cohort", "name");
 
       // Filter out evaluations with null sessions
       evaluations = evaluations.filter(
@@ -568,28 +607,30 @@ const getReportsForAllCohorts = async (req, res) => {
         continue; // Skip this cohort if no evaluations are found
       }
 
-      // Group by domain for each cohort
-      const domainData = {};
+      // Group by domain and process domain data
+      const domainDataForCohort = {};
 
       evaluations.forEach((evaluation) => {
         evaluation.domain.forEach((domain) => {
           const domainName = domain.name;
 
-          if (!domainData[domainName]) {
-            domainData[domainName] = {
+          if (!domainDataForCohort[domainName]) {
+            domainDataForCohort[domainName] = {
               domainName,
               totalScore: 0,
               count: 0,
             };
           }
 
-          domainData[domainName].totalScore += parseFloat(domain.average);
-          domainData[domainName].count += 1;
+          domainDataForCohort[domainName].totalScore += parseFloat(
+            domain.average
+          );
+          domainDataForCohort[domainName].count += 1;
         });
       });
 
       // Add domain averages to graphDetails
-      Object.values(domainData).forEach((data) => {
+      Object.values(domainDataForCohort).forEach((data) => {
         graphDetails.push({
           domainName: data.domainName,
           average: (data.totalScore / data.count).toFixed(2),
@@ -598,10 +639,14 @@ const getReportsForAllCohorts = async (req, res) => {
       });
     }
 
-    // Return graph details
+    // Return structured response
     res.json({
       success: true,
-      message: graphDetails,
+      message: {
+        graphDetails,
+        genderData,
+        participantTypeData,
+      },
     });
   } catch (error) {
     console.error(`Error fetching reports: ${error.message}`);
