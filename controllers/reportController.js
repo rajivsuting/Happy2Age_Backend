@@ -18,12 +18,14 @@ const getReportsByCohort = async (req, res) => {
     console.log(type);
 
     // Find cohort document
-    const cohortDoc = await Cohort.findById(cohort);
+    const cohortDoc = await Cohort.findById(cohort).populate("participants");
     if (!cohortDoc) {
       return res
         .status(404)
         .json({ success: false, message: "No cohort found with ID " + cohort });
     }
+
+    const participants = cohortDoc.participants;
 
     const startDate = new Date(start);
     const endDate = new Date(end);
@@ -236,6 +238,31 @@ const getReportsByCohort = async (req, res) => {
 
     const cohortAverage = (total / finalGraphDetails.length).toFixed(2);
 
+    const genderData = [
+      { gender: "Male", count: 0 },
+      { gender: "Female", count: 0 },
+      { gender: "Other", count: 0 },
+    ];
+    const participantTypeData = [
+      { participantType: "General", count: 0 },
+      { participantType: "Special Need", count: 0 },
+    ];
+
+    // Process genderData and participantTypeData
+    participants.forEach((participant) => {
+      // Increment gender count
+      const genderIndex = genderData.findIndex(
+        (item) => item.gender === participant.gender
+      );
+      if (genderIndex !== -1) genderData[genderIndex].count++;
+
+      // Increment participantType count
+      const typeIndex = participantTypeData.findIndex(
+        (item) => item.participantType === participant.participantType
+      );
+      if (typeIndex !== -1) participantTypeData[typeIndex].count++;
+    });
+
     const cohortReport = {
       cohort: evaluations[0].cohort.name,
       attendance,
@@ -245,6 +272,8 @@ const getReportsByCohort = async (req, res) => {
       participantDomainScores: finalGraphDetails,
       averageForCohort: cohortAverage,
       evaluations,
+      genderData,
+      participantTypeData,
     };
 
     res.json({ success: true, message: cohortReport });
