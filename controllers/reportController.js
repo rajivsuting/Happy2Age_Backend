@@ -248,7 +248,13 @@ const getReportsByCohort = async (req, res) => {
       { participantType: "Special Need", count: 0 },
     ];
 
-    // Process genderData and participantTypeData
+    const ageData = [
+      { ageRange: "55-65", count: 0 },
+      { ageRange: "65-75", count: 0 },
+      { ageRange: "75+", count: 0 },
+    ];
+
+    // Process genderData, participantTypeData, and ageData
     participants.forEach((participant) => {
       // Increment gender count
       const genderIndex = genderData.findIndex(
@@ -261,6 +267,17 @@ const getReportsByCohort = async (req, res) => {
         (item) => item.participantType === participant.participantType
       );
       if (typeIndex !== -1) participantTypeData[typeIndex].count++;
+
+      // Calculate and increment age group count
+      const age =
+        new Date().getFullYear() - new Date(participant.dob).getFullYear();
+      if (age >= 55 && age <= 65) {
+        ageData[0].count++;
+      } else if (age > 65 && age <= 75) {
+        ageData[1].count++;
+      } else if (age > 75) {
+        ageData[2].count++;
+      }
     });
 
     const cohortReport = {
@@ -274,6 +291,7 @@ const getReportsByCohort = async (req, res) => {
       evaluations,
       genderData,
       participantTypeData,
+      ageData,
     };
 
     res.json({ success: true, message: cohortReport });
@@ -598,7 +616,13 @@ const getReportsForAllCohorts = async (req, res) => {
       { participantType: "Special Need", count: 0 },
     ];
 
-    // Process genderData and participantTypeData
+    const ageData = [
+      { ageRange: "55-65", count: 0 },
+      { ageRange: "65-75", count: 0 },
+      { ageRange: "75+", count: 0 },
+    ];
+
+    // Process genderData, participantTypeData, and ageData
     participants.forEach((participant) => {
       // Increment gender count
       const genderIndex = genderData.findIndex(
@@ -611,6 +635,17 @@ const getReportsForAllCohorts = async (req, res) => {
         (item) => item.participantType === participant.participantType
       );
       if (typeIndex !== -1) participantTypeData[typeIndex].count++;
+
+      // Calculate and increment age group count
+      const age =
+        new Date().getFullYear() - new Date(participant.dob).getFullYear();
+      if (age >= 55 && age <= 65) {
+        ageData[0].count++;
+      } else if (age > 65 && age <= 75) {
+        ageData[1].count++;
+      } else if (age > 75) {
+        ageData[2].count++;
+      }
     });
 
     // Process each cohort's evaluations
@@ -674,6 +709,7 @@ const getReportsForAllCohorts = async (req, res) => {
       message: {
         graphDetails,
         genderData,
+        ageData,
         participantTypeData,
       },
     });
