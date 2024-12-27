@@ -1,6 +1,7 @@
 const Evaluation = require("../models/evaluationSchema");
 const Domain = require("../models/domainSchema");
 const Participant = require("../models/participantSchema");
+const Session = require("../models/sessionSchema");
 
 const createEvaluation = async (req, res) => {
   try {
@@ -181,10 +182,10 @@ const updateEvaluation = async (req, res) => {
 };
 
 const searchEvaluationsByParticipantName = async (req, res) => {
-  const { name, startDate, endDate } = req.query; // Get participant name and optional date range from query parameters
-  console.log("ok");
+  const { name, startDate, endDate } = req.query;
+
   try {
-    // Find participants matching the name (case-insensitive search)
+    // Step 1: Find participants matching the name (case-insensitive search)
     const participants = await Participant.find({
       name: { $regex: name, $options: "i" },
     });
@@ -196,52 +197,43 @@ const searchEvaluationsByParticipantName = async (req, res) => {
       });
     }
 
-    // Extract participant IDs to find evaluations
+    // Step 2: Extract participant IDs to find evaluations
     const participantIds = participants.map((p) => p._id);
 
-    // Build a filter object
-    const filter = {
-      participant: { $in: participantIds },
-    };
+    // Step 3: Build the base query for evaluations
+    let filter = { participant: { $in: participantIds } };
 
-    // If date range is provided, add it to the filter
+    // Step 4: Apply date filtering if a range is provided
     if (startDate && endDate) {
-      filter["session.date"] = {
-        $gte: new Date(startDate), // Start date
-        $lte: new Date(endDate), // End date
-      };
+      // Fetch session IDs matching the date range
+      const sessions = await Session.find({
+        date: { $gte: new Date(startDate), $lte: new Date(endDate) },
+      }).select("_id");
+
+      const sessionIds = sessions.map((session) => session._id);
+      filter.session = { $in: sessionIds };
     }
 
-    // Find evaluations based on the filter
+    // Step 5: Query evaluations and populate references
     const evaluations = await Evaluation.find(filter)
       .populate("participant") // Populate participant details
       .populate("cohort") // Populate cohort details
       .populate("activity") // Populate activity details
-      .populate({
-        path: "session",
-        match:
-          startDate && endDate
-            ? { date: { $gte: new Date(startDate), $lte: new Date(endDate) } }
-            : {}, // Ensure session date matches range if provided
-      });
+      .populate("session"); // Populate session details
 
-    // Remove evaluations with null session when a date range is applied
-    const filteredEvaluations =
-      startDate && endDate
-        ? evaluations.filter((evaluation) => evaluation.session !== null)
-        : evaluations;
-
-    if (filteredEvaluations.length === 0) {
+    // Step 6: Return filtered evaluations or a not found response
+    if (evaluations.length === 0) {
       return res.status(404).json({
         success: false,
-        message: `No evaluations found for participants with the name "${name}" within the specified date range`,
+        message: `No evaluations found for participants with the name "${name}"${
+          startDate && endDate ? " within the specified date range" : ""
+        }`,
       });
     }
 
-    // Return evaluations
     res.status(200).json({
       success: true,
-      data: filteredEvaluations,
+      data: evaluations,
     });
   } catch (error) {
     console.error("Error searching evaluations:", error);
