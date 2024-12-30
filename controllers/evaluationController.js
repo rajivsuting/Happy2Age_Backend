@@ -181,56 +181,102 @@ const updateEvaluation = async (req, res) => {
   }
 };
 
-const searchEvaluationsByParticipantName = async (req, res) => {
+const searchEvaluations = async (req, res) => {
   const { name, startDate, endDate } = req.query;
 
   try {
-    // Step 1: Find participants matching the name (case-insensitive search)
-    const participants = await Participant.find({
-      name: { $regex: name, $options: "i" },
-    });
+    // Base filter for evaluations
+    let filter = {};
 
-    if (participants.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: `No participants found with the name "${name}"`,
+    // Scenario 1: Only name is provided
+    if (name && (!startDate || !endDate)) {
+      // Find participants matching the name (case-insensitive search)
+      const participants = await Participant.find({
+        name: { $regex: name, $options: "i" },
       });
+
+      if (participants.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: `No participants found with the name "${name}"`,
+        });
+      }
+
+      // Add participant IDs to the filter
+      const participantIds = participants.map((p) => p._id);
+      filter.participant = { $in: participantIds };
     }
 
-    // Step 2: Extract participant IDs to find evaluations
-    const participantIds = participants.map((p) => p._id);
-
-    // Step 3: Build the base query for evaluations
-    let filter = { participant: { $in: participantIds } };
-
-    // Step 4: Apply date filtering if a range is provided
-    if (startDate && endDate) {
+    // Scenario 2: Only date range is provided
+    if (!name && startDate && endDate) {
       // Fetch session IDs matching the date range
       const sessions = await Session.find({
         date: { $gte: new Date(startDate), $lte: new Date(endDate) },
       }).select("_id");
 
+      if (sessions.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: `No sessions found within the specified date range`,
+        });
+      }
+
       const sessionIds = sessions.map((session) => session._id);
       filter.session = { $in: sessionIds };
     }
 
-    // Step 5: Query evaluations and populate references
+    // Scenario 3: Both name and date range are provided
+    if (name && startDate && endDate) {
+      // Find participants matching the name
+      const participants = await Participant.find({
+        name: { $regex: name, $options: "i" },
+      });
+
+      if (participants.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: `No participants found with the name "${name}"`,
+        });
+      }
+
+      // Add participant IDs to the filter
+      const participantIds = participants.map((p) => p._id);
+      filter.participant = { $in: participantIds };
+
+      // Fetch session IDs matching the date range
+      const sessions = await Session.find({
+        date: { $gte: new Date(startDate), $lte: new Date(endDate) },
+      }).select("_id");
+
+      if (sessions.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: `No sessions found within the specified date range`,
+        });
+      }
+
+      const sessionIds = sessions.map((session) => session._id);
+      filter.session = { $in: sessionIds };
+    }
+
+    // Query evaluations with the final filter
     const evaluations = await Evaluation.find(filter)
       .populate("participant") // Populate participant details
       .populate("cohort") // Populate cohort details
       .populate("activity") // Populate activity details
       .populate("session"); // Populate session details
 
-    // Step 6: Return filtered evaluations or a not found response
+    // Check if evaluations exist
     if (evaluations.length === 0) {
       return res.status(404).json({
         success: false,
-        message: `No evaluations found for participants with the name "${name}"${
-          startDate && endDate ? " within the specified date range" : ""
-        }`,
+        message: `No evaluations found${
+          name ? ` for participants with the name "${name}"` : ""
+        }${startDate && endDate ? " within the specified date range" : ""}`,
       });
     }
 
+    // Return filtered evaluations
     res.status(200).json({
       success: true,
       data: evaluations,
@@ -249,5 +295,5 @@ module.exports = {
   getAllEvaluation,
   deleteEvaluation,
   updateEvaluation,
-  searchEvaluationsByParticipantName,
+  searchEvaluations,
 };
