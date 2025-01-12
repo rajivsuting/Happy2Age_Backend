@@ -2,6 +2,7 @@ const Evaluation = require("../models/evaluationSchema");
 const Domain = require("../models/domainSchema");
 const Participant = require("../models/participantSchema");
 const Session = require("../models/sessionSchema");
+const Cohort = require("../models/cohortSchema");
 
 const createEvaluation = async (req, res) => {
   try {
@@ -265,14 +266,12 @@ const searchEvaluations = async (req, res) => {
       filter.session = { $in: sessionIds };
     }
 
-    // Query evaluations with the final filter
     const evaluations = await Evaluation.find(filter)
-      .populate("participant") // Populate participant details
-      .populate("cohort") // Populate cohort details
-      .populate("activity") // Populate activity details
-      .populate("session"); // Populate session details
+      .populate("participant")
+      .populate("cohort")
+      .populate("activity")
+      .populate("session");
 
-    // Check if evaluations exist
     if (evaluations.length === 0) {
       return res.status(404).json({
         success: false,
@@ -282,7 +281,6 @@ const searchEvaluations = async (req, res) => {
       });
     }
 
-    // Return filtered evaluations
     res.status(200).json({
       success: true,
       data: evaluations,
