@@ -185,31 +185,33 @@ const searchEvaluations = async (req, res) => {
   const { name, startDate, endDate } = req.query;
 
   try {
-    // Base filter for evaluations
     let filter = {};
 
-    // Scenario 1: Only name is provided
     if (name && (!startDate || !endDate)) {
-      // Find participants matching the name (case-insensitive search)
-      const participants = await Participant.find({
+      const participantMatch = await Participant.find({
         name: { $regex: name, $options: "i" },
       });
 
-      if (participants.length === 0) {
+      const cohortMatch = await Cohort.find({
+        name: { $regex: name, $options: "i" },
+      });
+
+      if (participantMatch.length === 0 && cohortMatch.length === 0) {
         return res.status(404).json({
           success: false,
-          message: `No participants found with the name "${name}"`,
+          message: `No participants or cohorts found with the name "${name}"`,
         });
       }
 
-      // Add participant IDs to the filter
-      const participantIds = participants.map((p) => p._id);
-      filter.participant = { $in: participantIds };
+      const participantIds = participantMatch.map((p) => p._id);
+      const cohortIds = cohortMatch.map((c) => c._id);
+
+      if (participantIds.length > 0)
+        filter.participant = { $in: participantIds };
+      if (cohortIds.length > 0) filter.cohort = { $in: cohortIds };
     }
 
-    // Scenario 2: Only date range is provided
     if (!name && startDate && endDate) {
-      // Fetch session IDs matching the date range
       const sessions = await Session.find({
         date: { $gte: new Date(startDate), $lte: new Date(endDate) },
       }).select("_id");
@@ -225,25 +227,29 @@ const searchEvaluations = async (req, res) => {
       filter.session = { $in: sessionIds };
     }
 
-    // Scenario 3: Both name and date range are provided
     if (name && startDate && endDate) {
-      // Find participants matching the name
-      const participants = await Participant.find({
+      const participantMatch = await Participant.find({
         name: { $regex: name, $options: "i" },
       });
 
-      if (participants.length === 0) {
+      const cohortMatch = await Cohort.find({
+        name: { $regex: name, $options: "i" },
+      });
+
+      if (participantMatch.length === 0 && cohortMatch.length === 0) {
         return res.status(404).json({
           success: false,
-          message: `No participants found with the name "${name}"`,
+          message: `No participants or cohorts found with the name "${name}"`,
         });
       }
 
-      // Add participant IDs to the filter
-      const participantIds = participants.map((p) => p._id);
-      filter.participant = { $in: participantIds };
+      const participantIds = participantMatch.map((p) => p._id);
+      const cohortIds = cohortMatch.map((c) => c._id);
 
-      // Fetch session IDs matching the date range
+      if (participantIds.length > 0)
+        filter.participant = { $in: participantIds };
+      if (cohortIds.length > 0) filter.cohort = { $in: cohortIds };
+
       const sessions = await Session.find({
         date: { $gte: new Date(startDate), $lte: new Date(endDate) },
       }).select("_id");
@@ -271,7 +277,7 @@ const searchEvaluations = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: `No evaluations found${
-          name ? ` for participants with the name "${name}"` : ""
+          name ? ` for participants or cohorts with the name "${name}"` : ""
         }${startDate && endDate ? " within the specified date range" : ""}`,
       });
     }
