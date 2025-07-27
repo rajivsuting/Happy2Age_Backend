@@ -7,6 +7,8 @@ const {
   deleteEvaluation,
   updateEvaluation,
   searchEvaluations,
+  getEvaluationById,
+  getPerformanceTrends,
 } = require("../controllers/evaluationController");
 const authenticate = require("../middlewares/authenticate");
 
@@ -267,6 +269,87 @@ routes.post("/create", authenticate, createEvaluation);
 
 routes.get("/all", authenticate, getAllEvaluation);
 
+routes.get("/search", searchEvaluations);
+
+/**
+ * @openapi
+ * /evaluations/trends:
+ *   get:
+ *     summary: Get overall performance analysis for a participant
+ *     tags:
+ *       - Evaluations
+ *     description: Analyzes all evaluation data to provide comprehensive performance metrics for a specific participant.
+ *     parameters:
+ *       - in: query
+ *         name: participantId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the participant to analyze
+ *     responses:
+ *       200:
+ *         description: Performance analysis retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     overall:
+ *                       type: object
+ *                       properties:
+ *                         scores:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               date:
+ *                                 type: string
+ *                                 format: date-time
+ *                               score:
+ *                                 type: number
+ *                         metrics:
+ *                           type: object
+ *                           properties:
+ *                             average:
+ *                               type: string
+ *                               description: Average score across all evaluations
+ *                               example: "85.50"
+ *                             highest:
+ *                               type: string
+ *                               description: Highest score achieved
+ *                               example: "95.00"
+ *                             lowest:
+ *                               type: string
+ *                               description: Lowest score achieved
+ *                               example: "75.00"
+ *                             latest:
+ *                               type: string
+ *                               description: Most recent score
+ *                               example: "88.00"
+ *                             consistency:
+ *                               type: string
+ *                               enum: [high, medium, low]
+ *                               description: Indicates how consistent the scores are
+ *                             trend:
+ *                               type: string
+ *                               enum: [improving, declining, stable]
+ *                               description: Overall performance trend
+ *       400:
+ *         description: Bad request - missing participant ID
+ *       404:
+ *         description: No evaluations found for the participant
+ *       500:
+ *         description: Internal server error
+ */
+
+routes.get("/trends", authenticate, getPerformanceTrends);
+
 /**
  * @openapi
  * /evaluations/{id}:
@@ -434,6 +517,6 @@ routes.delete("/:id", authenticate, deleteEvaluation);
 
 routes.patch("/:id", authenticate, updateEvaluation);
 
-routes.get("/search", authenticate, searchEvaluations);
+routes.get("/:id", authenticate, getEvaluationById);
 
 module.exports = routes;

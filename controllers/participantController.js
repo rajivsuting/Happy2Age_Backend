@@ -7,21 +7,17 @@ const Attendance = require("../models/attendanceSchema");
 
 const createParticipant = async (req, res) => {
   try {
-    const errors = validateData(req.body);
-    if (errors) {
-      return res.status(400).json({ success: false, errors });
-    }
-
     const participantData = req.body;
 
     const cohort = participantData.cohort;
 
-    const existingCohort = await Cohort.findOne({ _id: cohort });
-
-    if (!existingCohort)
-      return res
-        .status(404)
-        .json({ success: false, message: `No cohort found with id ${cohort}` });
+    const existingCohort = await Cohort.findById(cohort);
+    if (!existingCohort) {
+      return res.status(404).json({
+        success: false,
+        message: `No cohort found with id ${cohort}`,
+      });
+    }
 
     const newParticipant = new Participant(participantData);
     const savedParticipant = await newParticipant.save();
@@ -35,11 +31,27 @@ const createParticipant = async (req, res) => {
       data: savedParticipant,
     });
   } catch (error) {
+    if (error.name === "ValidationError") {
+      const errors = {};
+      for (let field in error.errors) {
+        errors[field] = error.errors[field].message;
+      }
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed",
+        errors,
+      });
+    }
+
     if (error.message.includes("User with this email already exists")) {
       return res.status(409).json({ success: false, message: error.message });
     }
+
     logger.error("Error creating participant:", error);
-    res.status(500).json({ success: false, message: "Internal server error" });
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 };
 
@@ -48,29 +60,35 @@ const getAllParticipants = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit);
     const skip = (page - 1) * (limit || 0);
+    const search = req.query.search || "";
+
+    const filter = search ? { name: { $regex: search, $options: "i" } } : {};
+
     let participants;
     let totalParticipants;
     let totalPages;
 
     if (limit) {
-      participants = await Participant.find().skip(skip).limit(limit);
-      totalParticipants = await Participant.countDocuments();
+      participants = await Participant.find(filter).skip(skip).limit(limit);
+      totalParticipants = await Participant.countDocuments(filter);
       totalPages = Math.ceil(totalParticipants / limit);
     } else {
-      participants = await Participant.find();
+      participants = await Participant.find(filter);
       totalParticipants = participants.length;
       totalPages = 1;
     }
 
     if (participants.length === 0) {
-      return res
-        .status(404)
-        .json({ success: false, message: "No participants found" });
+      return res.status(404).json({
+        success: false,
+        message: "No participants found",
+      });
     }
 
     res.status(200).json({
       success: true,
-      message: participants,
+      message: "Participants fetched successfully",
+      data: participants,
       currentPage: page,
       totalPages,
       totalParticipants,
@@ -173,9 +191,165 @@ const updateParticipant = async (req, res) => {
   }
 };
 
+const getParticipantById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const participant = await Participant.findById(id).populate("cohort");
+
+    if (!participant) {
+      return res.status(404).json({
+        success: false,
+        message: `No participant found with id ${id}`,
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Participant fetched successfully",
+      data: participant,
+    });
+  } catch (error) {
+    console.error("Error fetching participant:", error);
+
+    // Optional: catch malformed ObjectId
+    if (error.name === "CastError") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid participant ID format",
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+const archiveParticipant = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const participant = await Participant.findById(id);
+
+    if (!participant) {
+      return res.status(404).json({
+        success: false,
+        message: `No participant found with id ${id}`,
+      });
+    }
+
+    if (participant.archived) {
+      return res.status(400).json({
+        success: false,
+        message: "Participant is already archived",
+      });
+    }
+
+    participant.archived = true;
+    await participant.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Participant archived successfully",
+      data: participant,
+    });
+  } catch (error) {
+    console.error("Error archiving participant:", error);
+
+    if (error.name === "CastError") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid participant ID format",
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+const unarchiveParticipant = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const participant = await Participant.findById(id);
+
+    if (!participant) {
+      return res.status(404).json({
+        success: false,
+        message: `No participant found with id ${id}`,
+      });
+    }
+
+    if (!participant.archived) {
+      return res.status(400).json({
+        success: false,
+        message: "Participant is already active",
+      });
+    }
+
+    participant.archived = false;
+    await participant.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Participant unarchived successfully",
+      data: participant,
+    });
+  } catch (error) {
+    console.error("Error unarchiving participant:", error);
+
+    if (error.name === "CastError") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid participant ID format",
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+const getAllParticipantsForExport = async (req, res) => {
+  try {
+    const search = req.query.search || "";
+    const filter = search ? { name: { $regex: search, $options: "i" } } : {};
+
+    const participants = await Participant.find(filter)
+      .populate("cohort", "name")
+      .lean();
+
+    if (participants.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No participants found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Participants fetched successfully",
+      data: participants,
+    });
+  } catch (error) {
+    console.error("Error fetching participants for export:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
 module.exports = {
   createParticipant,
   getAllParticipants,
   searchParticipantsByName,
   updateParticipant,
+  getParticipantById,
+  archiveParticipant,
+  unarchiveParticipant,
+  getAllParticipantsForExport,
 };

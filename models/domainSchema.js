@@ -14,10 +14,6 @@ const subTopic = new Schema({
 });
 
 const domainSchema = new Schema({
-  category: {
-    type: String,
-  },
-
   name: {
     type: String,
     required: true,
@@ -34,10 +30,21 @@ const domainSchema = new Schema({
     type: String,
     trim: true,
   },
+
   average: {
     type: Number,
     default: 0,
     trim: true,
+  },
+  happinessParameter: {
+    type: [String],
+    required: true,
+    enum: [
+      "Positive Emotions",
+      "Social Belonging",
+      "Engagement & Purpose",
+      "Satisfaction with the program",
+    ],
   },
 });
 

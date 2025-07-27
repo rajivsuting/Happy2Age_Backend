@@ -1,4 +1,6 @@
 const express = require("express");
+const path = require("path");
+const fs = require("fs");
 
 const cors = require("cors");
 require("dotenv/config");
@@ -42,6 +44,8 @@ const reportRoutes = require("./routes/reportRoutes");
 const oxfordRoutes = require("./routes/oxfordHappinessRoutes");
 const caspRoutes = require("./routes/caspRoutes");
 const mocaRoutes = require("./routes/mocaRoutes");
+const scheduledActivityRoutes = require("./routes/scheduledActivityRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
 
 // auth
 const authRoutes = require("./routes/authRoutes");
@@ -68,6 +72,27 @@ app.use("/report", reportRoutes);
 app.use("/oxford", oxfordRoutes);
 app.use("/casp", caspRoutes);
 app.use("/moca", mocaRoutes);
+app.use("/scheduled-activity", scheduledActivityRoutes);
+app.use("/dashboard", dashboardRoutes);
+
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(__dirname, "uploads", "reports");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Serve uploaded files with proper headers
+app.use(
+  "/uploads",
+  express.static(path.join(__dirname, "uploads"), {
+    setHeaders: (res, path) => {
+      if (path.endsWith(".pdf")) {
+        res.set("Content-Type", "application/pdf");
+        res.set("Content-Disposition", "inline");
+      }
+    },
+  })
+);
 
 connectDB();
 

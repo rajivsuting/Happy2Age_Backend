@@ -25,6 +25,11 @@ const sessionSchema = new Schema({
     required: true,
     min: 0,
   },
+  activityFacilitator: {
+    type: String,
+    required: true,
+    trim: true,
+  },
   date: {
     type: Date,
     required: true,

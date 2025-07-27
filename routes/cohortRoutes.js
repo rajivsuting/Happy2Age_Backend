@@ -7,6 +7,7 @@ const {
   updateCohort,
   deleteCohort,
   searchCohortByName,
+  getCohortById,
 } = require("../controllers/cohortController");
 const authenticate = require("../middlewares/authenticate");
 
@@ -520,5 +521,7 @@ routes.patch("/edit/:id", authenticate, updateCohort);
  */
 
 routes.delete("/delete/:id", authenticate, deleteCohort);
+
+routes.get("/:id", authenticate, getCohortById);
 
 module.exports = routes;

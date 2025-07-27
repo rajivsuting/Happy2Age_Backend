@@ -6,6 +6,10 @@ const {
   getAllParticipants,
   searchParticipantsByName,
   updateParticipant,
+  getParticipantById,
+  archiveParticipant,
+  unarchiveParticipant,
+  getAllParticipantsForExport,
 } = require("../controllers/participantController");
 
 /**
@@ -364,6 +368,7 @@ routes.post("/create", authenticate, createParticipant);
  */
 
 routes.get("/all", authenticate, getAllParticipants);
+routes.get("/export", authenticate, getAllParticipantsForExport);
 
 /**
  * @openapi
@@ -703,5 +708,9 @@ routes.get("/name", authenticate, searchParticipantsByName);
  */
 
 routes.patch("/edit/:id", authenticate, updateParticipant);
+
+routes.get("/:id", authenticate, getParticipantById);
+routes.patch("/:id/archive", authenticate, archiveParticipant);
+routes.patch("/:id/unarchive", authenticate, unarchiveParticipant);
 
 module.exports = routes;

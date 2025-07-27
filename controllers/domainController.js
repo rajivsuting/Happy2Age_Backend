@@ -1,10 +1,16 @@
 const Domain = require("../models/domainSchema");
+const mongoose = require("mongoose");
 
 const createDomain = async (req, res) => {
   try {
-    const { name, category, subTopics } = req.body;
+    const { name, category, subTopics, happinessParameter } = req.body;
 
-    const domain = new Domain({ name, category, subTopics });
+    const domain = new Domain({
+      name,
+      category,
+      subTopics,
+      happinessParameter,
+    });
     const savedDomain = await domain.save();
 
     res.status(201).json({
@@ -20,68 +26,88 @@ const createDomain = async (req, res) => {
 
 const getAllDomains = async (req, res) => {
   try {
-    const { category } = req.query;
-    if (category === "All") {
-      const domains = await Domain.find();
+    const { category = "All", name = "", page = 1, limit = 10 } = req.query;
 
-      if (domains.length === 0) {
-        return res
-          .status(404)
-          .json({ success: false, message: "No domains found" });
-      }
+    const query = {};
 
-      res.status(200).json({ success: true, message: domains });
-    } else if (category === "General") {
-      const domains = await Domain.find({ category: category });
-      if (domains.length === 0) {
-        return res
-          .status(404)
-          .json({ success: false, message: "No domains found" });
-      }
-
-      res.status(200).json({ success: true, message: domains });
-    } else if (category === "Special Need") {
-      const domains = await Domain.find({ category: category });
-      if (domains.length === 0) {
-        return res
-          .status(404)
-          .json({ success: false, message: "No domains found" });
-      }
-
-      res.status(200).json({ success: true, message: domains });
+    // Filter by category if not "All"
+    if (category !== "All") {
+      query.category = category;
     }
+
+    // Case-insensitive name search
+    if (name) {
+      query.name = { $regex: name, $options: "i" };
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const [domains, total] = await Promise.all([
+      Domain.find(query).skip(skip).limit(parseInt(limit)),
+      Domain.countDocuments(query),
+    ]);
+
+    if (domains.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No domains found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Domains fetched successfully",
+      data: domains,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / limit),
+      },
+    });
   } catch (error) {
     console.error("Error fetching domains:", error);
 
-    if (error.name === "CastError") {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid ID format" });
-    }
-
-    res.status(500).json({ success: false, message: "Internal server error" });
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 };
 
 const getDomainById = async (req, res) => {
   try {
-    const id = req.params.id;
+    const { id } = req.params;
+
+    // Check for valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid domain ID" });
+    }
+
     const domain = await Domain.findById(id);
+
     if (!domain) {
       return res
         .status(404)
         .json({ success: false, message: "Domain not found" });
     }
-    res.status(200).json({ success: true, message: domain });
+
+    res.status(200).json({
+      success: true,
+      message: "Domain fetched successfully",
+      data: domain,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Error fetching domain:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
 const updateDomain = async (req, res) => {
   try {
     const id = req.params.id;
-    const { name, subTopics, category } = req.body;
+    const { name, subTopics, category, happinessParameter } = req.body;
 
     const domain = await Domain.findById(id);
     if (!domain) {
@@ -94,6 +120,8 @@ const updateDomain = async (req, res) => {
     if (name !== undefined) updateData.name = name;
     if (subTopics !== undefined) updateData.subTopics = subTopics;
     if (category !== undefined) updateData.category = category;
+    if (happinessParameter !== undefined)
+      updateData.happinessParameter = happinessParameter;
 
     const updatedDomain = await Domain.findByIdAndUpdate(id, updateData, {
       new: true,

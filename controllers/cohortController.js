@@ -6,32 +6,16 @@ const { default: mongoose } = require("mongoose");
 
 const createCohort = async (req, res) => {
   try {
-    const { name, participants } = req.body;
+    const { name } = req.body;
 
-    if (!name || !participants || !Array.isArray(participants)) {
+    if (!name) {
       return res.status(400).json({
         success: false,
-        message:
-          "Name and participants are required fields, and participants must be an array",
+        message: "Name is required fields",
       });
     }
 
-    const invalidParticipants = [];
-    for (const participantId of participants) {
-      const participant = await Participant.findById(participantId);
-      if (!participant) {
-        invalidParticipants.push(participantId);
-      }
-    }
-
-    if (invalidParticipants.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: `Participants not found: ${invalidParticipants.join(", ")}`,
-      });
-    }
-
-    const cohort = await Cohort.create({ name, participants });
+    const cohort = await Cohort.create({ name });
 
     res.status(201).json({
       success: true,
@@ -47,13 +31,18 @@ const createCohort = async (req, res) => {
 
 const getAllCohorts = async (req, res) => {
   try {
-    const { page = 1, limit = 10 } = req.query; // Default values for page and limit
+    const { page = 1, limit = 10, search } = req.query;
 
-    const cohorts = await Cohort.find()
+    const query = {};
+    if (search) {
+      query.name = { $regex: search, $options: "i" }; // case-insensitive search
+    }
+
+    const cohorts = await Cohort.find(query)
       .populate("participants")
       .populate("sessions")
-      .skip((page - 1) * limit) // Calculate the number of documents to skip
-      .limit(parseInt(limit)) // Limit the number of documents retrieved
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit))
       .lean();
 
     if (cohorts.length === 0) {
@@ -62,10 +51,7 @@ const getAllCohorts = async (req, res) => {
         .json({ success: false, message: "No cohorts found" });
     }
 
-    // Get the total count of cohorts for pagination purposes
-    const totalCohorts = await Cohort.countDocuments();
-
-    // logger.info(`Retrieved ${cohorts.length} cohorts successfully`);
+    const totalCohorts = await Cohort.countDocuments(query);
 
     res.status(200).json({
       success: true,
@@ -198,10 +184,44 @@ const searchCohortByName = async (req, res) => {
   }
 };
 
+const getCohortById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check for valid MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid Cohort ID format" });
+    }
+
+    const cohort = await Cohort.findById(id)
+      .populate("participants")
+      .populate("sessions")
+      .lean();
+
+    if (!cohort) {
+      return res
+        .status(404)
+        .json({ success: false, message: `Cohort not found with id ${id}` });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Cohort retrieved successfully",
+      data: cohort,
+    });
+  } catch (error) {
+    console.error("Error fetching cohort by ID:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
 module.exports = {
   createCohort,
   getAllCohorts,
   updateCohort,
   deleteCohort,
   searchCohortByName,
+  getCohortById,
 };

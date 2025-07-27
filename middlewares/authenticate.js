@@ -4,7 +4,11 @@ require("dotenv/config");
 const User = require("../models/Admin");
 
 const authenticate = (req, res, next) => {
-  const token = req.header("Authorization");
+  let token = req.header("Authorization");
+
+  if (!token && req.cookies?.accessToken) {
+    token = req.cookies.accessToken;
+  }
 
   if (!token) {
     return res.status(401).json({ message: "Access denied." });

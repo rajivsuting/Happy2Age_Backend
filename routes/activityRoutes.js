@@ -7,6 +7,8 @@ const {
   updateActivity,
   deleteActivity,
   searchActivityByName,
+  getActivityById,
+  getAllActivitiesForExport,
 } = require("../controllers/activityController");
 const authenticate = require("../middlewares/authenticate");
 
@@ -210,6 +212,7 @@ routes.post("/create", authenticate, createActivity);
  */
 
 routes.get("/all", authenticate, getAllActivities);
+routes.get("/export", authenticate, getAllActivitiesForExport);
 
 /**
  * @openapi
@@ -459,5 +462,7 @@ routes.delete("/delete/:id", authenticate, deleteActivity);
  */
 
 routes.get("/activities/search", authenticate, searchActivityByName);
+
+routes.get("/:id", authenticate, getActivityById);
 
 module.exports = routes;

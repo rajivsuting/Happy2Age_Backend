@@ -73,6 +73,10 @@ const participantSchema = new Schema(
         message: "Brief background must not exceed 100 words.",
       },
     },
+    archived: {
+      type: Boolean,
+      default: false,
+    },
     emergencyContact: {
       name: {
         type: String,
@@ -100,6 +104,3 @@ participantSchema.index({ email: 1 });
 
 const Participant = mongoose.model("Participant", participantSchema);
 module.exports = Participant;
-
-
-
