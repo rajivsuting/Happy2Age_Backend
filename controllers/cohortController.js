@@ -40,7 +40,13 @@ const getAllCohorts = async (req, res) => {
 
     const cohorts = await Cohort.find(query)
       .populate("participants")
-      .populate("sessions")
+      .populate({
+        path: "sessions",
+        populate: {
+          path: "activity",
+          model: "Activity",
+        },
+      })
       .skip((page - 1) * limit)
       .limit(parseInt(limit))
       .lean();
@@ -158,7 +164,13 @@ const searchCohortByName = async (req, res) => {
 
     const cohorts = await Cohort.find({ name: { $regex: name, $options: "i" } })
       .populate("participants")
-      .populate("sessions")
+      .populate({
+        path: "sessions",
+        populate: {
+          path: "activity",
+          model: "Activity",
+        },
+      })
       .lean();
 
     if (cohorts.length === 0) {
@@ -197,7 +209,13 @@ const getCohortById = async (req, res) => {
 
     const cohort = await Cohort.findById(id)
       .populate("participants")
-      .populate("sessions")
+      .populate({
+        path: "sessions",
+        populate: {
+          path: "activity",
+          model: "Activity",
+        },
+      })
       .lean();
 
     if (!cohort) {

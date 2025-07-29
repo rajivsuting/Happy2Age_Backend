@@ -91,28 +91,97 @@ const getCASPByParticipantId = async (req, res) => {
 
 const getCASPParticipantAll = async (req, res) => {
   try {
-    // Attempt to find CASP by participant id
-    const caspDoc = await CASP.find();
+    const {
+      page = 1,
+      limit = 10,
+      search = "",
+      startDate = "",
+      endDate = "",
+      participant = "",
+    } = req.query;
 
-    // Check if CASP exists for this participant
-    if (!caspDoc) {
-      return res.status(404).json({
-        success: false,
-        message: "No CASP found for this participant",
-      });
+    // Build query
+    let query = {};
+
+    if (search) {
+      query.$or = [{ "participant.name": { $regex: search, $options: "i" } }];
     }
 
-    // Return the CASP document
+    if (startDate || endDate) {
+      query.date = {};
+      if (startDate) query.date.$gte = new Date(startDate);
+      if (endDate) query.date.$lte = new Date(endDate);
+    }
+
+    if (participant) {
+      query.participant = participant;
+    }
+
+    // Calculate skip value for pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Get total count
+    const total = await CASP.countDocuments(query);
+
+    // Get paginated results with populated participant
+    const caspDoc = await CASP.find(query)
+      .populate("participant", "name")
+      .sort({ date: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    // Calculate total pages
+    const totalPages = Math.ceil(total / parseInt(limit));
+
     return res.status(200).json({
       success: true,
       message: caspDoc,
+      total,
+      totalPages,
+      currentPage: parseInt(page),
+      pageSize: parseInt(limit),
     });
   } catch (error) {
-    console.error("Error in getCASPByParticipantId:", error);
+    console.error("Error in getCASPParticipantAll:", error);
     return res.status(500).json({
       success: false,
-      message: "An error occurred while retrieving the CASP",
-      message: error.message,
+      message: "An error occurred while retrieving the CASP evaluations",
+      error: error.message,
+    });
+  }
+};
+
+const getCASPById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check if id is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid evaluation ID format",
+      });
+    }
+
+    const evaluation = await CASP.findById(id).populate("participant", "name");
+
+    if (!evaluation) {
+      return res.status(404).json({
+        success: false,
+        message: "CASP evaluation not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: evaluation,
+    });
+  } catch (error) {
+    console.error("Error in getCASPById:", error);
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while retrieving the evaluation",
+      error: error.message,
     });
   }
 };
@@ -187,6 +256,7 @@ module.exports = {
   addCASP,
   getCASPByParticipantId,
   getCASPParticipantAll,
+  getCASPById,
   updateCASPResult,
   deleteCASPResult,
 };

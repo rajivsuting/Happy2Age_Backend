@@ -19,7 +19,7 @@ const options = {
     },
     servers: [
       {
-        url: "https://happy2age-backend-gn8ln.ondigitalocean.app",
+        url: "http://localhost:8000",
         description: "Production server",
       },
     ],
@@ -69,7 +69,7 @@ app.use("/domain", domainRoutes);
 app.use("/session", sessionRoutes);
 app.use("/evaluation", evaluationRoutes);
 app.use("/report", reportRoutes);
-app.use("/oxford", oxfordRoutes);
+app.use("/oxford-happiness", oxfordRoutes);
 app.use("/casp", caspRoutes);
 app.use("/moca", mocaRoutes);
 app.use("/scheduled-activity", scheduledActivityRoutes);

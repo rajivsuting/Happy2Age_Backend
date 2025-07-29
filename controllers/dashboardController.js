@@ -18,8 +18,6 @@ const getDashboardStats = async (req, res) => {
       totalSpecialMembers,
       membersWithoutGroup,
       attendanceRecords,
-      memberEvaluations,
-      bottomMembers,
       cohorts,
       recentEvaluations,
       activityDistribution,
@@ -34,176 +32,6 @@ const getDashboardStats = async (req, res) => {
         $or: [{ cohort: { $exists: false } }, { cohort: null }],
       }),
       Attendance.find(),
-      // Get top performing members
-      Evaluation.aggregate([
-        {
-          $lookup: {
-            from: "participants",
-            localField: "participant",
-            foreignField: "_id",
-            as: "participantDetails",
-          },
-        },
-        {
-          $lookup: {
-            from: "cohorts",
-            localField: "cohort",
-            foreignField: "_id",
-            as: "cohortDetails",
-          },
-        },
-        {
-          $unwind: "$participantDetails",
-        },
-        {
-          $unwind: "$cohortDetails",
-        },
-        {
-          $group: {
-            _id: "$participant",
-            name: { $first: "$participantDetails.name" },
-            center: { $first: "$cohortDetails.name" },
-            totalScore: {
-              $sum: {
-                $cond: {
-                  if: { $isArray: "$domain" },
-                  then: {
-                    $reduce: {
-                      input: "$domain",
-                      initialValue: 0,
-                      in: {
-                        $add: ["$$value", { $toDouble: "$$this.average" }],
-                      },
-                    },
-                  },
-                  else: 0,
-                },
-              },
-            },
-            totalSessions: { $sum: 1 },
-            domainCount: {
-              $sum: {
-                $cond: {
-                  if: { $isArray: "$domain" },
-                  then: { $size: "$domain" },
-                  else: 0,
-                },
-              },
-            },
-          },
-        },
-        {
-          $project: {
-            _id: 1,
-            name: 1,
-            center: 1,
-            averageScore: {
-              $cond: {
-                if: { $eq: ["$domainCount", 0] },
-                then: 0,
-                else: {
-                  $divide: [
-                    "$totalScore",
-                    { $multiply: ["$totalSessions", "$domainCount"] },
-                  ],
-                },
-              },
-            },
-            totalSessions: 1,
-          },
-        },
-        {
-          $sort: { averageScore: -1 },
-        },
-        {
-          $limit: 3,
-        },
-      ]),
-      // Get bottom performing members
-      Evaluation.aggregate([
-        {
-          $lookup: {
-            from: "participants",
-            localField: "participant",
-            foreignField: "_id",
-            as: "participantDetails",
-          },
-        },
-        {
-          $lookup: {
-            from: "cohorts",
-            localField: "cohort",
-            foreignField: "_id",
-            as: "cohortDetails",
-          },
-        },
-        {
-          $unwind: "$participantDetails",
-        },
-        {
-          $unwind: "$cohortDetails",
-        },
-        {
-          $group: {
-            _id: "$participant",
-            name: { $first: "$participantDetails.name" },
-            center: { $first: "$cohortDetails.name" },
-            totalScore: {
-              $sum: {
-                $cond: {
-                  if: { $isArray: "$domain" },
-                  then: {
-                    $reduce: {
-                      input: "$domain",
-                      initialValue: 0,
-                      in: {
-                        $add: ["$$value", { $toDouble: "$$this.average" }],
-                      },
-                    },
-                  },
-                  else: 0,
-                },
-              },
-            },
-            totalSessions: { $sum: 1 },
-            domainCount: {
-              $sum: {
-                $cond: {
-                  if: { $isArray: "$domain" },
-                  then: { $size: "$domain" },
-                  else: 0,
-                },
-              },
-            },
-          },
-        },
-        {
-          $project: {
-            _id: 1,
-            name: 1,
-            center: 1,
-            averageScore: {
-              $cond: {
-                if: { $eq: ["$domainCount", 0] },
-                then: 0,
-                else: {
-                  $divide: [
-                    "$totalScore",
-                    { $multiply: ["$totalSessions", "$domainCount"] },
-                  ],
-                },
-              },
-            },
-            totalSessions: 1,
-          },
-        },
-        {
-          $sort: { averageScore: 1 },
-        },
-        {
-          $limit: 3,
-        },
-      ]),
       // Get all cohorts with their participant counts
       Cohort.aggregate([
         {
@@ -269,8 +97,8 @@ const getDashboardStats = async (req, res) => {
         ? ((presentCount / attendanceRecords.length) * 100).toFixed(2)
         : null;
 
-    // --- HAPPINESS PARAMETER & DOMAIN AGGREGATION ---
-    // Helper: get all happiness parameters from domains
+    // --- CORRECT HAPPINESS PARAMETER & DOMAIN AGGREGATION ---
+    // Get all domains to understand happiness parameter mapping
     const allDomains = await Domain.find();
     const domainToHappiness = {};
     allDomains.forEach((d) => {
@@ -278,144 +106,288 @@ const getDashboardStats = async (req, res) => {
         domainToHappiness[d.name] = d.happinessParameter;
       }
     });
-    // Helper: get all happiness parameters
-    const allHappinessParams = Array.from(
-      new Set(allDomains.flatMap((d) => d.happinessParameter || []))
-    );
-    // --- AGGREGATE BY CENTER ---
-    const allCohorts = await Cohort.find();
-    const centerHappiness = [];
-    const centerDomains = [];
-    for (const cohort of allCohorts) {
-      const evaluations = await Evaluation.find({
-        cohort: cohort._id,
-      }).populate("domain");
-      // Happiness param averages
-      const happinessMap = {};
-      const domainMap = {};
-      evaluations.forEach((ev) => {
-        if (Array.isArray(ev.domain)) {
-          ev.domain.forEach((dom) => {
-            // Domains
-            if (!domainMap[dom.name]) domainMap[dom.name] = [];
-            domainMap[dom.name].push(parseFloat(dom.average));
-            // Happiness
-            (domainToHappiness[dom.name] || []).forEach((param) => {
-              if (!happinessMap[param]) happinessMap[param] = [];
-              happinessMap[param].push(parseFloat(dom.average));
-            });
-          });
-        }
-      });
-      // 4 happiness params: average of each, then mean of those 4
-      const happinessAverages = allHappinessParams
-        .map((param) => {
-          const arr = happinessMap[param] || [];
-          return arr.length
-            ? arr.reduce((a, b) => a + b, 0) / arr.length
-            : null;
-        })
-        .filter((v) => v !== null);
-      const happinessAvg = happinessAverages.length
-        ? happinessAverages.reduce((a, b) => a + b, 0) /
-          happinessAverages.length
-        : null;
-      centerHappiness.push({ name: cohort.name, average: happinessAvg });
-      // 7 domains: average of each, then mean
-      const domainAverages = Object.values(domainMap)
-        .map((arr) =>
-          arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
-        )
-        .filter((v) => v !== null);
-      const domainAvg = domainAverages.length
-        ? domainAverages.reduce((a, b) => a + b, 0) / domainAverages.length
-        : null;
-      centerDomains.push({ name: cohort.name, average: domainAvg });
-    }
-    // --- AGGREGATE BY MEMBER ---
-    const allParticipants = await Participant.find();
-    const memberHappiness = [];
-    const memberDomains = [];
+
+    // --- CALCULATE TOP/BOTTOM PERFORMING MEMBERS (DOMAINS) ---
+    const allParticipants = await Participant.find().populate("cohort");
+    const memberDomainScores = [];
+    const memberHappinessScores = [];
+
     for (const participant of allParticipants) {
       const evaluations = await Evaluation.find({
         participant: participant._id,
       }).populate("domain");
-      const happinessMap = {};
-      const domainMap = {};
-      evaluations.forEach((ev) => {
-        if (Array.isArray(ev.domain)) {
-          ev.domain.forEach((dom) => {
-            // Domains
-            if (!domainMap[dom.name]) domainMap[dom.name] = [];
-            domainMap[dom.name].push(parseFloat(dom.average));
-            // Happiness
-            (domainToHappiness[dom.name] || []).forEach((param) => {
-              if (!happinessMap[param]) happinessMap[param] = [];
-              happinessMap[param].push(parseFloat(dom.average));
-            });
+
+      if (!evaluations || evaluations.length === 0) continue;
+
+      // Group evaluations by domain for this participant
+      const participantDomainMap = {};
+      evaluations.forEach((evaluation) => {
+        if (Array.isArray(evaluation.domain)) {
+          evaluation.domain.forEach((domain) => {
+            const key = `${participant.name}-${domain.name}`;
+            if (!participantDomainMap[key]) {
+              participantDomainMap[key] = {
+                total: 0,
+                count: 0,
+              };
+            }
+            participantDomainMap[key].total += parseFloat(domain.average || 0);
+            participantDomainMap[key].count += 1;
           });
         }
       });
-      // 4 happiness params: average of each, then mean
-      const happinessAverages = allHappinessParams
-        .map((param) => {
-          const arr = happinessMap[param] || [];
-          return arr.length
-            ? arr.reduce((a, b) => a + b, 0) / arr.length
-            : null;
-        })
-        .filter((v) => v !== null);
-      const happinessAvg = happinessAverages.length
-        ? happinessAverages.reduce((a, b) => a + b, 0) /
-          happinessAverages.length
-        : null;
-      memberHappiness.push({
+
+      // Calculate domain averages for this participant
+      const domainAverages = Object.values(participantDomainMap).map(
+        (entry) => entry.total / entry.count
+      );
+
+      const participantAverage =
+        domainAverages.length > 0
+          ? domainAverages.reduce((a, b) => a + b, 0) / domainAverages.length
+          : 0;
+
+      memberDomainScores.push({
+        id: participant._id,
         name: participant.name,
-        average: happinessAvg,
-        center: participant.cohort,
+        center: participant.cohort?.name || "Unknown",
+        averageScore: participantAverage,
+        totalSessions: evaluations.length,
       });
-      // 7 domains: average of each, then mean
-      const domainAverages = Object.values(domainMap)
-        .map((arr) =>
-          arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
-        )
-        .filter((v) => v !== null);
-      const domainAvg = domainAverages.length
-        ? domainAverages.reduce((a, b) => a + b, 0) / domainAverages.length
-        : null;
-      memberDomains.push({
+
+      // --- CALCULATE HAPPINESS PARAMETER SCORES ---
+      // Build a map from domainName to all unique happinessParameters for this participant
+      const participantDomainToHappiness = {};
+      evaluations.forEach((evaluation) => {
+        if (evaluation.domain && Array.isArray(evaluation.domain)) {
+          evaluation.domain.forEach((domain) => {
+            if (domain.name && domain.happinessParameter) {
+              if (!participantDomainToHappiness[domain.name])
+                participantDomainToHappiness[domain.name] = new Set();
+              domain.happinessParameter.forEach((param) =>
+                participantDomainToHappiness[domain.name].add(param)
+              );
+            }
+          });
+        }
+      });
+
+      // Calculate happiness parameter averages for this participant
+      const happinessMap = {};
+      const centerAverageMap = {};
+
+      // For each domain average, map to happiness parameters
+      Object.entries(participantDomainMap).forEach(([key, data]) => {
+        const domainName = key.split("-")[1];
+        const domainAverage = data.total / data.count;
+
+        const params = Array.from(
+          participantDomainToHappiness[domainName] || []
+        );
+        params.forEach((param) => {
+          if (!happinessMap[param]) happinessMap[param] = [];
+          if (!centerAverageMap[param]) centerAverageMap[param] = [];
+          happinessMap[param].push(domainAverage);
+          // For dashboard, we'll use the same domain average as center average since we're not comparing to cohort
+          centerAverageMap[param].push(domainAverage);
+        });
+      });
+
+      // Calculate average for each happiness parameter
+      const happinessParameterAverages = Object.entries(happinessMap).map(
+        ([happinessParameter, averages]) => {
+          const centerAverages = centerAverageMap[happinessParameter] || [];
+          return {
+            happinessParameter,
+            average:
+              averages.length > 0
+                ? averages.reduce((a, b) => a + b, 0) / averages.length
+                : null,
+            centerAverage:
+              centerAverages.length > 0
+                ? centerAverages.reduce((a, b) => a + b, 0) /
+                  centerAverages.length
+                : null,
+          };
+        }
+      );
+
+      // Calculate overall happiness score (average of all happiness parameters)
+      const validHappinessAverages = happinessParameterAverages
+        .map((item) => item.average)
+        .filter((avg) => avg !== null);
+
+      const overallHappinessScore =
+        validHappinessAverages.length > 0
+          ? validHappinessAverages.reduce((a, b) => a + b, 0) /
+            validHappinessAverages.length
+          : 0;
+
+      memberHappinessScores.push({
+        id: participant._id,
         name: participant.name,
-        average: domainAvg,
-        center: participant.cohort,
+        center: participant.cohort?.name || "Unknown",
+        averageScore: overallHappinessScore,
+        totalSessions: evaluations.length,
       });
     }
-    // Sort and pick top/bottom 3 for each
-    const topCentersHappiness = [...centerHappiness]
-      .sort((a, b) => b.average - a.average)
+
+    // Sort and get top/bottom performers
+    const topPerformers = [...memberDomainScores]
+      .sort((a, b) => b.averageScore - a.averageScore)
       .slice(0, 3);
-    const bottomCentersHappiness = [...centerHappiness]
-      .sort((a, b) => a.average - b.average)
+    const bottomPerformers = [...memberDomainScores]
+      .sort((a, b) => a.averageScore - b.averageScore)
       .slice(0, 3);
-    const topCentersDomains = [...centerDomains]
-      .sort((a, b) => b.average - a.average)
+    const topMembersHappiness = [...memberHappinessScores]
+      .sort((a, b) => b.averageScore - a.averageScore)
       .slice(0, 3);
-    const bottomCentersDomains = [...centerDomains]
-      .sort((a, b) => a.average - b.average)
+    const bottomMembersHappiness = [...memberHappinessScores]
+      .sort((a, b) => a.averageScore - b.averageScore)
       .slice(0, 3);
-    const topMembersHappiness = [...memberHappiness]
-      .sort((a, b) => b.average - a.average)
+    const topMembersDomains = [...memberDomainScores]
+      .sort((a, b) => b.averageScore - a.averageScore)
       .slice(0, 3);
-    const bottomMembersHappiness = [...memberHappiness]
-      .sort((a, b) => a.average - b.average)
-      .slice(0, 3);
-    const topMembersDomains = [...memberDomains]
-      .sort((a, b) => b.average - a.average)
-      .slice(0, 3);
-    const bottomMembersDomains = [...memberDomains]
-      .sort((a, b) => a.average - b.average)
+    const bottomMembersDomains = [...memberDomainScores]
+      .sort((a, b) => a.averageScore - b.averageScore)
       .slice(0, 3);
 
-    // Process cohort data
+    // --- CALCULATE CENTER PERFORMANCE ---
+    const allCohorts = await Cohort.find();
+    const centerDomainScores = [];
+    const centerHappinessScores = [];
+
+    for (const cohort of allCohorts) {
+      const evaluations = await Evaluation.find({
+        cohort: cohort._id,
+      }).populate("domain");
+
+      if (!evaluations || evaluations.length === 0) continue;
+
+      // Group evaluations by domain for this center
+      const centerDomainMap = {};
+      evaluations.forEach((evaluation) => {
+        if (Array.isArray(evaluation.domain)) {
+          evaluation.domain.forEach((domain) => {
+            const key = `${cohort.name}-${domain.name}`;
+            if (!centerDomainMap[key]) {
+              centerDomainMap[key] = {
+                total: 0,
+                count: 0,
+              };
+            }
+            centerDomainMap[key].total += parseFloat(domain.average || 0);
+            centerDomainMap[key].count += 1;
+          });
+        }
+      });
+
+      // Calculate domain averages for this center
+      const domainAverages = Object.values(centerDomainMap).map(
+        (entry) => entry.total / entry.count
+      );
+
+      const centerAverage =
+        domainAverages.length > 0
+          ? domainAverages.reduce((a, b) => a + b, 0) / domainAverages.length
+          : 0;
+
+      centerDomainScores.push({
+        name: cohort.name,
+        averageScore: centerAverage,
+        participantCount: cohort.participants?.length || 0,
+        totalSessions: evaluations.length,
+      });
+
+      // --- CALCULATE CENTER HAPPINESS PARAMETER SCORES ---
+      // Build a map from domainName to all unique happinessParameters for this center
+      const centerDomainToHappiness = {};
+      evaluations.forEach((evaluation) => {
+        if (evaluation.domain && Array.isArray(evaluation.domain)) {
+          evaluation.domain.forEach((domain) => {
+            if (domain.name && domain.happinessParameter) {
+              if (!centerDomainToHappiness[domain.name])
+                centerDomainToHappiness[domain.name] = new Set();
+              domain.happinessParameter.forEach((param) =>
+                centerDomainToHappiness[domain.name].add(param)
+              );
+            }
+          });
+        }
+      });
+
+      // Calculate happiness parameter averages for this center
+      const happinessMap = {};
+      const centerAverageMap = {};
+
+      // For each domain average, map to happiness parameters
+      Object.entries(centerDomainMap).forEach(([key, data]) => {
+        const domainName = key.split("-")[1];
+        const domainAverage = data.total / data.count;
+
+        const params = Array.from(centerDomainToHappiness[domainName] || []);
+        params.forEach((param) => {
+          if (!happinessMap[param]) happinessMap[param] = [];
+          if (!centerAverageMap[param]) centerAverageMap[param] = [];
+          happinessMap[param].push(domainAverage);
+          // For dashboard centers, we'll use the same domain average as center average
+          centerAverageMap[param].push(domainAverage);
+        });
+      });
+
+      // Calculate average for each happiness parameter
+      const happinessParameterAverages = Object.entries(happinessMap).map(
+        ([happinessParameter, averages]) => {
+          const centerAverages = centerAverageMap[happinessParameter] || [];
+          return {
+            happinessParameter,
+            average:
+              averages.length > 0
+                ? averages.reduce((a, b) => a + b, 0) / averages.length
+                : null,
+            centerAverage:
+              centerAverages.length > 0
+                ? centerAverages.reduce((a, b) => a + b, 0) /
+                  centerAverages.length
+                : null,
+          };
+        }
+      );
+
+      // Calculate overall happiness score (average of all happiness parameters)
+      const validHappinessAverages = happinessParameterAverages
+        .map((item) => item.average)
+        .filter((avg) => avg !== null);
+
+      const overallHappinessScore =
+        validHappinessAverages.length > 0
+          ? validHappinessAverages.reduce((a, b) => a + b, 0) /
+            validHappinessAverages.length
+          : 0;
+
+      centerHappinessScores.push({
+        name: cohort.name,
+        averageScore: overallHappinessScore,
+        participantCount: cohort.participants?.length || 0,
+        totalSessions: evaluations.length,
+      });
+    }
+
+    // Sort and get top/bottom centers
+    const topCentersHappiness = [...centerHappinessScores]
+      .sort((a, b) => b.averageScore - a.averageScore)
+      .slice(0, 3);
+    const bottomCentersHappiness = [...centerHappinessScores]
+      .sort((a, b) => a.averageScore - b.averageScore)
+      .slice(0, 3);
+    const topCentersDomains = [...centerDomainScores]
+      .sort((a, b) => b.averageScore - a.averageScore)
+      .slice(0, 3);
+    const bottomCentersDomains = [...centerDomainScores]
+      .sort((a, b) => a.averageScore - b.averageScore)
+      .slice(0, 3);
+
+    // Process cohort data for top centers (domains)
     const cohortAverages = [];
     for (const cohort of cohorts) {
       const evaluations = await Evaluation.find({ cohort: cohort._id })
@@ -491,15 +463,15 @@ const getDashboardStats = async (req, res) => {
           attendanceLevel,
           membersWithoutGroup,
         },
-        topPerformers: memberEvaluations.map((member) => ({
-          id: member._id,
+        topPerformers: topPerformers.map((member) => ({
+          id: member.id,
           name: member.name,
           center: member.center,
           averageScore: Math.round(member.averageScore),
           totalSessions: member.totalSessions,
         })),
-        bottomPerformers: bottomMembers.map((member) => ({
-          id: member._id,
+        bottomPerformers: bottomPerformers.map((member) => ({
+          id: member.id,
           name: member.name,
           center: member.center,
           averageScore: Math.round(member.averageScore),
@@ -513,14 +485,42 @@ const getDashboardStats = async (req, res) => {
         })),
         recentEvaluations: formattedRecentEvaluations,
         activityDistribution,
-        topCentersHappiness,
-        bottomCentersHappiness,
-        topCentersDomains,
-        bottomCentersDomains,
-        topMembersHappiness,
-        bottomMembersHappiness,
-        topMembersDomains,
-        bottomMembersDomains,
+        topCentersHappiness: topCentersHappiness.map((center) => ({
+          name: center.name,
+          average: center.averageScore,
+        })),
+        bottomCentersHappiness: bottomCentersHappiness.map((center) => ({
+          name: center.name,
+          average: center.averageScore,
+        })),
+        topCentersDomains: topCentersDomains.map((center) => ({
+          name: center.name,
+          average: center.averageScore,
+        })),
+        bottomCentersDomains: bottomCentersDomains.map((center) => ({
+          name: center.name,
+          average: center.averageScore,
+        })),
+        topMembersHappiness: topMembersHappiness.map((member) => ({
+          name: member.name,
+          center: member.center,
+          average: member.averageScore,
+        })),
+        bottomMembersHappiness: bottomMembersHappiness.map((member) => ({
+          name: member.name,
+          center: member.center,
+          average: member.averageScore,
+        })),
+        topMembersDomains: topMembersDomains.map((member) => ({
+          name: member.name,
+          center: member.center,
+          average: member.averageScore,
+        })),
+        bottomMembersDomains: bottomMembersDomains.map((member) => ({
+          name: member.name,
+          center: member.center,
+          average: member.averageScore,
+        })),
       },
     });
   } catch (error) {

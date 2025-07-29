@@ -139,7 +139,7 @@ const refreshToken = async (req, res) => {
     // Verify the refresh token
     jwt.verify(
       refreshToken,
-      process.env.REFRESH_TOKEN_SECRET,
+      process.env.JWT_REFRESH_SECRET,
       async (error, decoded) => {
         if (error) {
           // Clear existing cookies if refresh token is invalid

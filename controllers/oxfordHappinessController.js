@@ -90,22 +90,63 @@ const getHappinessScoresByParticipantId = async (req, res) => {
 };
 const getAllHappinessScores = async (req, res) => {
   try {
-    console.log("mdjdndndndndndnnnnnnnn");
-    // Attempt to find happiness scores by participant id
-    const happinessScores = await OxfordHappiness.find();
-    // Return the happiness scores
+    const {
+      page = 1,
+      limit = 10,
+      search = "",
+      startDate = "",
+      endDate = "",
+      participant = "",
+    } = req.query;
+
+    // Build query
+    let query = {};
+
+    if (search) {
+      query.$or = [{ "participant.name": { $regex: search, $options: "i" } }];
+    }
+
+    if (startDate || endDate) {
+      query.date = {};
+      if (startDate) query.date.$gte = new Date(startDate);
+      if (endDate) query.date.$lte = new Date(endDate);
+    }
+
+    if (participant) {
+      query.participant = participant;
+    }
+
+    // Calculate skip value for pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Get total count
+    const total = await OxfordHappiness.countDocuments(query);
+
+    // Get paginated results with populated participant
+    const happinessScores = await OxfordHappiness.find(query)
+      .populate("participant", "name")
+      .sort({ date: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    // Calculate total pages
+    const totalPages = Math.ceil(total / parseInt(limit));
+
     return res.status(200).json({
       success: true,
       message: happinessScores,
+      total,
+      totalPages,
+      currentPage: parseInt(page),
+      pageSize: parseInt(limit),
     });
   } catch (error) {
-    console.error("Error in getHappinessScoresByParticipantId:", error);
+    console.error("Error in getAllHappinessScores:", error);
 
-    // Handle unexpected errors
     return res.status(500).json({
       success: false,
       message: "An error occurred while retrieving the happiness scores",
-      message: error.message,
+      error: error.message,
     });
   }
 };
@@ -114,7 +155,7 @@ const editOxfordHappinessEvaluation = async (req, res) => {
   try {
     const { id } = req.params;
     const { participant, questions, date } = req.body;
-console.log(req.body);
+    console.log(req.body);
     // Calculate the happiness score
     const happinessScore =
       questions.reduce((total, question) => {
@@ -159,6 +200,44 @@ console.log(req.body);
   }
 };
 
+const getHappinessScoreById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check if id is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid evaluation ID format",
+      });
+    }
+
+    const evaluation = await OxfordHappiness.findById(id).populate(
+      "participant",
+      "name"
+    );
+
+    if (!evaluation) {
+      return res.status(404).json({
+        success: false,
+        message: "Oxford Happiness Evaluation not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: evaluation,
+    });
+  } catch (error) {
+    console.error("Error in getHappinessScoreById:", error);
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while retrieving the evaluation",
+      error: error.message,
+    });
+  }
+};
+
 const deleteOxfordHappinessResult = async (req, res) => {
   try {
     const { id } = req.params;
@@ -181,7 +260,7 @@ const deleteOxfordHappinessResult = async (req, res) => {
       success: false,
       message:
         "An error occurred while deleting the Oxford Happiness Evaluation",
-      message: error.message,
+      error: error.message,
     });
   }
 };
@@ -189,6 +268,7 @@ module.exports = {
   getAllHappinessScores,
   addOxfordHappinessEvaluation,
   getHappinessScoresByParticipantId,
+  getHappinessScoreById,
   editOxfordHappinessEvaluation,
   deleteOxfordHappinessResult,
 };
