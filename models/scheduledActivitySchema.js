@@ -3,11 +3,13 @@ const Schema = mongoose.Schema;
 
 const scheduledActivitySchema = new Schema(
   {
-    activity: {
-      type: Schema.Types.ObjectId,
-      ref: "Activity",
-      required: true,
-    },
+    activities: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Activity",
+        required: true,
+      },
+    ],
     date: {
       type: Date,
       required: true,
@@ -23,6 +25,10 @@ const scheduledActivitySchema = new Schema(
       default: "scheduled",
     },
     notes: {
+      type: String,
+      trim: true,
+    },
+    activityFacilitator: {
       type: String,
       trim: true,
     },

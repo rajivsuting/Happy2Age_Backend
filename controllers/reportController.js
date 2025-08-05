@@ -30,8 +30,10 @@ const getReportsByCohort = async (req, res) => {
     }
     console.log(type);
 
-    // Find cohort document
-    const cohortDoc = await Cohort.findById(cohort).populate("participants");
+    // Find cohort document with populated sessions
+    const cohortDoc = await Cohort.findById(cohort)
+      .populate("participants")
+      .populate("sessions");
     if (!cohortDoc) {
       return res
         .status(404)
@@ -231,7 +233,21 @@ const getReportsByCohort = async (req, res) => {
       date: { $gte: startDate, $lte: endDate },
     });
 
-    const totalNumberOfSessions = cohortDoc.sessions.length;
+    // Get unique sessions within date range
+    const sessionsInDateRange = cohortDoc.sessions
+      ? cohortDoc.sessions.filter((session) => {
+          const sessionDate = new Date(session.date);
+          return sessionDate >= startDate && sessionDate <= endDate;
+        })
+      : [];
+
+    // Group by session ID to count unique sessions
+    const uniqueSessions = new Set();
+    sessionsInDateRange.forEach((session) => {
+      uniqueSessions.add(session._id.toString());
+    });
+
+    const totalNumberOfSessions = uniqueSessions.size;
 
     if (attendanceRecords.length === 0) {
       return res.status(404).json({
@@ -239,10 +255,26 @@ const getReportsByCohort = async (req, res) => {
       });
     }
 
-    const attendance = attendanceRecords.filter(
-      (record) => record.present
-    ).length;
+    // Count unique sessions that had attendance (where at least one person was present)
+    const sessionsWithAttendance = new Set();
+    attendanceRecords.forEach((record) => {
+      if (record.present && record.session) {
+        sessionsWithAttendance.add(record.session.toString());
+      }
+    });
+
+    const attendance = sessionsWithAttendance.size;
     const totalAttendance = attendanceRecords.length;
+
+    console.log("Backend Debug attendance calculation:", {
+      totalNumberOfSessions,
+      attendance,
+      totalAttendance,
+      sessionsWithAttendanceSize: sessionsWithAttendance.size,
+      calculation: `${attendance} / ${totalNumberOfSessions} * 100 = ${Math.round(
+        (attendance / totalNumberOfSessions) * 100
+      )}%`,
+    });
 
     const total = finalGraphDetails.reduce(
       (acc, entry) => acc + Number(entry.score),
@@ -1282,6 +1314,8 @@ const getReportsForAllCohorts = async (req, res) => {
 
     // Process each cohort's evaluations
     const domainData = [];
+    const allHappinessParameterAverages = [];
+
     for (const cohort of cohorts) {
       const cohortId = cohort._id;
 
@@ -1292,7 +1326,8 @@ const getReportsForAllCohorts = async (req, res) => {
           match: { date: { $gte: startDate, $lte: endDate } },
         })
         .populate("participant", "name gender dob participantType cohort")
-        .populate("cohort", "name");
+        .populate("cohort", "name")
+        .populate("domain");
 
       // Filter out evaluations with null sessions
       evaluations = evaluations.filter(
@@ -1333,7 +1368,82 @@ const getReportsForAllCohorts = async (req, res) => {
           cohort: cohort.name,
         });
       });
+
+      // --- HAPPINESS PARAMETER CALCULATION (same logic as getReportsByCohort) ---
+      // Build a map from domainName to all unique happinessParameters across all evaluations
+      const domainToHappiness = {};
+      evaluations.forEach((evaluation) => {
+        if (evaluation.domain && Array.isArray(evaluation.domain)) {
+          evaluation.domain.forEach((domain) => {
+            if (domain.name && domain.happinessParameter) {
+              if (!domainToHappiness[domain.name])
+                domainToHappiness[domain.name] = new Set();
+              domain.happinessParameter.forEach((param) =>
+                domainToHappiness[domain.name].add(param)
+              );
+            }
+          });
+        }
+      });
+
+      // Build a map from domainName to centerAverage using domainDataForCohort
+      const domainNameToCenterAverage = {};
+      Object.values(domainDataForCohort).forEach((data) => {
+        domainNameToCenterAverage[data.domainName] =
+          data.totalScore / data.count;
+      });
+
+      // For each happinessParameter, collect all centerAverages for mapped domains
+      const centerAverageMap = {};
+      Object.values(domainDataForCohort).forEach((domain) => {
+        const params = Array.from(domainToHappiness[domain.domainName] || []);
+        params.forEach((param) => {
+          if (!centerAverageMap[param]) centerAverageMap[param] = [];
+          const centerAvg = domainNameToCenterAverage[domain.domainName];
+          if (!isNaN(centerAvg)) centerAverageMap[param].push(centerAvg);
+        });
+      });
+
+      const happinessParameterAverages = Object.entries(centerAverageMap).map(
+        ([happinessParameter, centerAverages]) => ({
+          happinessParameter,
+          centerAverage:
+            centerAverages.length > 0
+              ? (
+                  centerAverages.reduce((a, b) => a + b, 0) /
+                  centerAverages.length
+                ).toFixed(2)
+              : null,
+        })
+      );
+
+      // Add happiness parameter averages to the overall list
+      allHappinessParameterAverages.push(...happinessParameterAverages);
     }
+
+    // Aggregate happiness parameter averages across all centers
+    const aggregatedHappinessParameters = {};
+    allHappinessParameterAverages.forEach((item) => {
+      if (item.centerAverage !== null) {
+        if (!aggregatedHappinessParameters[item.happinessParameter]) {
+          aggregatedHappinessParameters[item.happinessParameter] = {
+            happinessParameter: item.happinessParameter,
+            totalAverage: 0,
+            centerCount: 0,
+          };
+        }
+        aggregatedHappinessParameters[item.happinessParameter].totalAverage +=
+          parseFloat(item.centerAverage);
+        aggregatedHappinessParameters[item.happinessParameter].centerCount += 1;
+      }
+    });
+
+    const finalHappinessParameterAverages = Object.values(
+      aggregatedHappinessParameters
+    ).map((item) => ({
+      happinessParameter: item.happinessParameter,
+      centerAverage: (item.totalAverage / item.centerCount).toFixed(2),
+    }));
 
     // Return structured response
     const reportData = {
@@ -1341,6 +1451,7 @@ const getReportsForAllCohorts = async (req, res) => {
       genderData,
       ageData,
       participantTypeData,
+      happinessParameterAverages: finalHappinessParameterAverages,
     };
 
     res.json({

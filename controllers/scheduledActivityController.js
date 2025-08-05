@@ -5,22 +5,29 @@ const Cohort = require("../models/cohortSchema");
 // Create a new scheduled activity
 const createScheduledActivity = async (req, res) => {
   try {
-    const { activityId, date, cohortId, notes } = req.body;
+    const { activityIds, date, cohortId, notes, activityFacilitator } =
+      req.body;
 
     // Validate required fields
-    if (!activityId || !date || !cohortId) {
+    if (
+      !activityIds ||
+      !Array.isArray(activityIds) ||
+      activityIds.length === 0 ||
+      !date ||
+      !cohortId
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Activity, date, and cohort are required",
+        message: "Activities (array), date, and cohort are required",
       });
     }
 
-    // Check if activity exists
-    const activity = await Activity.findById(activityId);
-    if (!activity) {
+    // Check if all activities exist
+    const activities = await Activity.find({ _id: { $in: activityIds } });
+    if (activities.length !== activityIds.length) {
       return res.status(404).json({
         success: false,
-        message: "Activity not found",
+        message: "One or more activities not found",
       });
     }
 
@@ -34,27 +41,28 @@ const createScheduledActivity = async (req, res) => {
     }
 
     const scheduledActivity = new ScheduledActivity({
-      activity: activityId,
+      activities: activityIds,
       date: new Date(date),
       cohort: cohortId,
       notes,
+      activityFacilitator,
     });
 
     await scheduledActivity.save();
 
     // Populate the references
     await scheduledActivity.populate([
-      { path: "activity", select: "name description category" },
+      { path: "activities", select: "name description category" },
       { path: "cohort", select: "name" },
     ]);
 
     res.status(201).json({
       success: true,
-      message: "Activity scheduled successfully",
+      message: "Activities scheduled successfully",
       data: scheduledActivity,
     });
   } catch (error) {
-    console.error("Error scheduling activity:", error);
+    console.error("Error scheduling activities:", error);
     res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -81,7 +89,7 @@ const getScheduledActivities = async (req, res) => {
     }
 
     const scheduledActivities = await ScheduledActivity.find(query)
-      .populate("activity", "name description category")
+      .populate("activities", "name description category")
       .populate("cohort", "name")
       .sort({ date: 1 });
 
@@ -102,7 +110,8 @@ const getScheduledActivities = async (req, res) => {
 const updateScheduledActivity = async (req, res) => {
   try {
     const { id } = req.params;
-    const { activityId, date, cohortId, status, notes } = req.body;
+    const { activityIds, date, cohortId, status, notes, activityFacilitator } =
+      req.body;
 
     const scheduledActivity = await ScheduledActivity.findById(id);
     if (!scheduledActivity) {
@@ -112,15 +121,16 @@ const updateScheduledActivity = async (req, res) => {
       });
     }
 
-    if (activityId) {
-      const activity = await Activity.findById(activityId);
-      if (!activity) {
+    if (activityIds && Array.isArray(activityIds)) {
+      // Check if all activities exist
+      const activities = await Activity.find({ _id: { $in: activityIds } });
+      if (activities.length !== activityIds.length) {
         return res.status(404).json({
           success: false,
-          message: "Activity not found",
+          message: "One or more activities not found",
         });
       }
-      scheduledActivity.activity = activityId;
+      scheduledActivity.activities = activityIds;
     }
 
     if (date) {
@@ -146,11 +156,15 @@ const updateScheduledActivity = async (req, res) => {
       scheduledActivity.notes = notes;
     }
 
+    if (activityFacilitator !== undefined) {
+      scheduledActivity.activityFacilitator = activityFacilitator;
+    }
+
     await scheduledActivity.save();
 
     // Populate the references
     await scheduledActivity.populate([
-      { path: "activity", select: "name description category" },
+      { path: "activities", select: "name description category" },
       { path: "cohort", select: "name" },
     ]);
 
