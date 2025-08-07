@@ -1465,6 +1465,7 @@ const getReportsForAllCohorts = async (req, res) => {
       ageData,
       participantTypeData,
       happinessParameterAverages: finalHappinessParameterAverages,
+      totalCenters: cohorts.length,
     };
 
     res.json({
