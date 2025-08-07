@@ -1269,7 +1269,6 @@ const getReportsForAllCohorts = async (req, res) => {
     const participants = await Participant.find();
 
     // Data holders
-    const graphDetails = [];
     const genderData = [
       { gender: "Male", count: 0 },
       { gender: "Female", count: 0 },
@@ -1313,7 +1312,7 @@ const getReportsForAllCohorts = async (req, res) => {
     });
 
     // Process each cohort's evaluations
-    const domainData = [];
+    const domainData = {};
     const allHappinessParameterAverages = [];
 
     for (const cohort of cohorts) {
@@ -1360,13 +1359,21 @@ const getReportsForAllCohorts = async (req, res) => {
         });
       });
 
-      // Add domain averages to graphDetails
+      // Aggregate domain averages across all centers
       Object.values(domainDataForCohort).forEach((data) => {
-        graphDetails.push({
-          domainName: data.domainName,
-          average: (data.totalScore / data.count).toFixed(2),
-          cohort: cohort.name,
-        });
+        const domainName = data.domainName;
+        const centerAverage = data.totalScore / data.count;
+
+        if (!domainData[domainName]) {
+          domainData[domainName] = {
+            domainName,
+            totalAverage: 0,
+            centerCount: 0,
+          };
+        }
+
+        domainData[domainName].totalAverage += centerAverage;
+        domainData[domainName].centerCount += 1;
       });
 
       // --- HAPPINESS PARAMETER CALCULATION (same logic as getReportsByCohort) ---
@@ -1445,9 +1452,15 @@ const getReportsForAllCohorts = async (req, res) => {
       centerAverage: (item.totalAverage / item.centerCount).toFixed(2),
     }));
 
+    // Convert aggregated domain data to final format
+    const finalGraphDetails = Object.values(domainData).map((domain) => ({
+      domainName: domain.domainName,
+      average: (domain.totalAverage / domain.centerCount).toFixed(2),
+    }));
+
     // Return structured response
     const reportData = {
-      graphDetails,
+      graphDetails: finalGraphDetails,
       genderData,
       ageData,
       participantTypeData,

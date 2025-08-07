@@ -19,7 +19,7 @@ const options = {
     },
     servers: [
       {
-        url: "http://localhost:8000",
+        url: "https://happy2age-backend-gn8ln.ondigitalocean.app",
         description: "Production server",
       },
     ],
