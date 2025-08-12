@@ -156,19 +156,23 @@ const login = async (req, res) => {
     }
 
     const { accessToken, refreshToken } = createTokens(admin);
+    const isProduction = process.env.NODE_ENV === "production";
 
+    // Set cookies with environment-aware settings
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
-      secure: true, // Always use HTTPS in prod
-      sameSite: "None", // Always None for cross-site
+      secure: isProduction, // Only secure in production (HTTPS)
+      sameSite: isProduction ? "None" : "Lax", // None for production, Lax for development
       maxAge: 3600000, // 1 hour
+      path: "/", // Explicitly set path
     });
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: true,
-      sameSite: "None",
+      secure: isProduction, // Only secure in production (HTTPS)
+      sameSite: isProduction ? "None" : "Lax", // None for production, Lax for development
       maxAge: 3600000 * 24 * 7, // 7 days
+      path: "/", // Explicitly set path
     });
 
     return res.status(200).json({
@@ -242,6 +246,7 @@ const refreshToken = async (req, res) => {
             secure: isProduction,
             sameSite: isProduction ? "None" : "Lax",
             maxAge: 3600000, // 1 hour, matching your login function
+            path: "/", // Explicitly set path
           });
 
           res.cookie("refreshToken", newRefreshToken, {
@@ -249,6 +254,7 @@ const refreshToken = async (req, res) => {
             secure: isProduction,
             sameSite: isProduction ? "None" : "Lax",
             maxAge: 3600000 * 24 * 7, // 7 days, matching your login function
+            path: "/", // Explicitly set path
           });
 
           return res.status(200).json({
