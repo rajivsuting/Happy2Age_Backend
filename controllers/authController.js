@@ -62,14 +62,78 @@ const createTokens = (admin) => {
   return { accessToken, refreshToken };
 };
 
+// const login = async (req, res) => {
+//   try {
+//     const { email, password } = req.body;
+
+//     if (!email || !password) {
+//       return res
+//         .status(400)
+//         .json({ success: false, message: "Email and password are required." });
+//     }
+
+//     const admin = await AdminSchema.findOne({
+//       email,
+//       removed: false,
+//       enabled: true,
+//     });
+
+//     if (!admin) {
+//       return res
+//         .status(401)
+//         .json({ success: false, message: "Invalid credentials." });
+//     }
+
+//     const isValid = await bcrypt.compare(admin.salt + password, admin.password);
+//     if (!isValid) {
+//       return res
+//         .status(401)
+//         .json({ success: false, message: "Invalid credentials." });
+//     }
+
+//     const { accessToken, refreshToken } = createTokens(admin);
+//     const isProduction = process.env.NODE_ENV === "production";
+
+//     // Set cookies
+//     res.cookie("accessToken", accessToken, {
+//       httpOnly: true,
+//       secure: isProduction,
+//       sameSite: isProduction ? "None" : "Lax",
+//       maxAge: 3600000, // 1 hour
+//     });
+
+//     res.cookie("refreshToken", refreshToken, {
+//       httpOnly: true,
+//       secure: isProduction,
+//       sameSite: isProduction ? "None" : "Lax",
+//       maxAge: 3600000 * 24 * 7, // 7 days
+//     });
+
+//     res.status(200).json({
+//       success: true,
+//       message: "Admin logged in successfully.",
+//       user: {
+//         id: admin._id,
+//         name: admin.name,
+//         email: admin.email,
+//       },
+//       token: accessToken,
+//     });
+//   } catch (error) {
+//     console.error("Admin Login Error:", error);
+//     res.status(500).json({ success: false, message: "Internal server error." });
+//   }
+// };
+
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Email and password are required." });
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required.",
+      });
     }
 
     const admin = await AdminSchema.findOne({
@@ -92,24 +156,22 @@ const login = async (req, res) => {
     }
 
     const { accessToken, refreshToken } = createTokens(admin);
-    const isProduction = process.env.NODE_ENV === "production";
 
-    // Set cookies
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? "None" : "Lax",
+      secure: true, // Always use HTTPS in prod
+      sameSite: "None", // Always None for cross-site
       maxAge: 3600000, // 1 hour
     });
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? "None" : "Lax",
+      secure: true,
+      sameSite: "None",
       maxAge: 3600000 * 24 * 7, // 7 days
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Admin logged in successfully.",
       user: {
@@ -117,7 +179,6 @@ const login = async (req, res) => {
         name: admin.name,
         email: admin.email,
       },
-      token: accessToken,
     });
   } catch (error) {
     console.error("Admin Login Error:", error);
