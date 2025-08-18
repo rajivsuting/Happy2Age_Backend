@@ -191,6 +191,12 @@ const login = async (req, res) => {
         name: admin.name,
         email: admin.email,
       },
+      // Include tokens for localStorage (non-sensitive data)
+      tokens: {
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+        expiresAt: Date.now() + 3600000, // 1 hour from now
+      },
     });
   } catch (error) {
     console.error("Admin Login Error:", error);
@@ -276,6 +282,12 @@ const refreshToken = async (req, res) => {
             success: true,
             message: "Tokens refreshed successfully.",
             token: accessToken,
+            // Include new tokens for localStorage
+            tokens: {
+              accessToken: accessToken,
+              refreshToken: newRefreshToken,
+              expiresAt: Date.now() + 3600000, // 1 hour from now
+            },
           });
         } catch (adminError) {
           console.error("Admin Lookup Error:", adminError);

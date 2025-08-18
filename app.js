@@ -83,6 +83,12 @@ app.use(
         return callback(null, true);
       }
 
+      // Special handling for Safari and mobile browsers
+      if (origin.includes("safari") || origin.includes("webkit")) {
+        console.log(`CORS: Allowing Safari/WebKit origin: ${origin}`);
+        return callback(null, true);
+      }
+
       // Check if origin is localhost for development
       if (
         process.env.NODE_ENV !== "production" &&
