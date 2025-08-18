@@ -10,6 +10,8 @@ const {
   deleteUser,
   logout,
   refreshToken,
+  testCookies,
+  checkCookies,
 } = require("../controllers/authController");
 const authenticate = require("../middlewares/authenticate");
 
@@ -18,6 +20,8 @@ routes.post("/login", login);
 routes.post("/logout", logout);
 routes.get("/alluser", allUser);
 routes.post("/refresh", refreshToken);
+routes.get("/test-cookies", testCookies);
+routes.get("/check-cookies", checkCookies);
 routes.get("/verify", authenticate, async (req, res) => {
   try {
     console.log("Verify endpoint called");

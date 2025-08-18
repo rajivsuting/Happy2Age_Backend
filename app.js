@@ -53,7 +53,40 @@ const authenticate = require("./middlewares/authenticate");
 
 const port = process.env.PORT || 3000;
 
-app.use(cors({ origin: true, credentials: true }));
+app.use(
+  cors({
+    origin:
+      process.env.NODE_ENV === "production"
+        ? [
+            "https://happy2age-frontend-gn8ln.ondigitalocean.app",
+            "https://happy2age-backend-gn8ln.ondigitalocean.app",
+          ]
+        : [
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "https://happy2age-backend-gn8ln.ondigitalocean.app",
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:8000",
+          ],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    exposedHeaders: ["Set-Cookie"],
+  })
+);
+
+// Add headers for Safari compatibility
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.header("Access-Control-Allow-Origin", req.headers.origin);
+  res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin,X-Requested-With,Content-Type,Accept,Authorization"
+  );
+  next();
+});
 
 app.use(express.json());
 app.use(cookieParser());

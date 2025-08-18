@@ -158,22 +158,30 @@ const login = async (req, res) => {
     const { accessToken, refreshToken } = createTokens(admin);
     const isProduction = process.env.NODE_ENV === "production";
 
-    // Set cookies with environment-aware settings
-    res.cookie("accessToken", accessToken, {
+    // Safari-compatible cookie settings
+    const cookieOptions = {
       httpOnly: true,
-      secure: isProduction, // Only secure in production (HTTPS)
-      sameSite: isProduction ? "None" : "Lax", // None for production, Lax for development
+      path: "/",
       maxAge: 3600000, // 1 hour
-      path: "/", // Explicitly set path
-    });
+    };
 
-    res.cookie("refreshToken", refreshToken, {
+    const refreshCookieOptions = {
       httpOnly: true,
-      secure: isProduction, // Only secure in production (HTTPS)
-      sameSite: isProduction ? "None" : "Lax", // None for production, Lax for development
+      path: "/",
       maxAge: 3600000 * 24 * 7, // 7 days
-      path: "/", // Explicitly set path
-    });
+    };
+
+    // Only add secure and sameSite in production
+    if (isProduction) {
+      cookieOptions.secure = true;
+      cookieOptions.sameSite = "None";
+      refreshCookieOptions.secure = true;
+      refreshCookieOptions.sameSite = "None";
+    }
+
+    // Set cookies
+    res.cookie("accessToken", accessToken, cookieOptions);
+    res.cookie("refreshToken", refreshToken, refreshCookieOptions);
 
     return res.status(200).json({
       success: true,
@@ -240,22 +248,29 @@ const refreshToken = async (req, res) => {
             createTokens(admin);
           const isProduction = process.env.NODE_ENV === "production";
 
-          // Set new cookies
-          res.cookie("accessToken", accessToken, {
+          // Set new cookies with Safari-compatible settings
+          const cookieOptions = {
             httpOnly: true,
-            secure: isProduction,
-            sameSite: isProduction ? "None" : "Lax",
-            maxAge: 3600000, // 1 hour, matching your login function
-            path: "/", // Explicitly set path
-          });
+            path: "/",
+            maxAge: 3600000, // 1 hour
+          };
 
-          res.cookie("refreshToken", newRefreshToken, {
+          const refreshCookieOptions = {
             httpOnly: true,
-            secure: isProduction,
-            sameSite: isProduction ? "None" : "Lax",
-            maxAge: 3600000 * 24 * 7, // 7 days, matching your login function
-            path: "/", // Explicitly set path
-          });
+            path: "/",
+            maxAge: 3600000 * 24 * 7, // 7 days
+          };
+
+          // Only add secure and sameSite in production
+          if (isProduction) {
+            cookieOptions.secure = true;
+            cookieOptions.sameSite = "None";
+            refreshCookieOptions.secure = true;
+            refreshCookieOptions.sameSite = "None";
+          }
+
+          res.cookie("accessToken", accessToken, cookieOptions);
+          res.cookie("refreshToken", newRefreshToken, refreshCookieOptions);
 
           return res.status(200).json({
             success: true,
@@ -285,19 +300,19 @@ const logout = (req, res) => {
 
   const isProduction = process.env.NODE_ENV === "production";
 
-  res.clearCookie("accessToken", {
+  // Safari-compatible cookie clearing
+  const clearOptions = {
     httpOnly: true,
-    secure: isProduction,
-    sameSite: isProduction ? "None" : "Lax",
     path: "/",
-  });
+  };
 
-  res.clearCookie("refreshToken", {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: isProduction ? "None" : "Lax",
-    path: "/",
-  });
+  if (isProduction) {
+    clearOptions.secure = true;
+    clearOptions.sameSite = "None";
+  }
+
+  res.clearCookie("accessToken", clearOptions);
+  res.clearCookie("refreshToken", clearOptions);
 
   res.status(200).json({ message: "User logged out successfully" });
 };
@@ -322,4 +337,60 @@ const deleteUser = async (req, res) => {
   }
 };
 
-module.exports = { register, login, allUser, deleteUser, logout, refreshToken };
+const testCookies = (req, res) => {
+  try {
+    // Set a simple test cookie
+    res.cookie("testCookie", "testValue", {
+      httpOnly: true,
+      path: "/",
+      maxAge: 3600000, // 1 hour
+    });
+
+    // Return current cookies and detailed info
+    res.status(200).json({
+      success: true,
+      message: "Test cookie set",
+      cookies: req.cookies,
+      headers: req.headers,
+      cookieHeader: req.headers.cookie,
+      origin: req.headers.origin,
+      referer: req.headers.referer,
+      userAgent: req.headers["user-agent"],
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("Test cookie error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Error setting test cookie" });
+  }
+};
+
+const checkCookies = (req, res) => {
+  try {
+    res.status(200).json({
+      success: true,
+      message: "Current cookies",
+      cookies: req.cookies,
+      cookieHeader: req.headers.cookie,
+      origin: req.headers.origin,
+      referer: req.headers.referer,
+      userAgent: req.headers["user-agent"],
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("Check cookie error:", error);
+    res.status(500).json({ success: false, message: "Error checking cookies" });
+  }
+};
+
+module.exports = {
+  register,
+  login,
+  allUser,
+  deleteUser,
+  logout,
+  refreshToken,
+  testCookies,
+  checkCookies,
+};

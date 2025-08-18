@@ -56,58 +56,100 @@ const getAllActivities = async (req, res) => {
       order = "desc",
     } = req.query;
 
-    const parsedPage = Math.max(parseInt(page), 1);
-    const parsedLimit = Math.max(parseInt(limit), 1);
+    const parsedPage = Math.max(parseInt(page) || 1, 1);
+    const parsedLimit = Math.max(parseInt(limit) || 10, 1);
     const skip = (parsedPage - 1) * parsedLimit;
 
     const filters = {};
 
-    if (name) {
-      filters.name = { $regex: name, $options: "i" };
+    if (name && name.trim()) {
+      filters.name = { $regex: name.trim(), $options: "i" };
     }
 
-    if (primaryDomain) {
-      filters.primaryDomain = primaryDomain;
+    if (primaryDomain && primaryDomain.trim()) {
+      // Validate ObjectId format
+      if (mongoose.Types.ObjectId.isValid(primaryDomain.trim())) {
+        filters.primaryDomain = primaryDomain.trim();
+      } else {
+        console.warn("Invalid primaryDomain ObjectId:", primaryDomain);
+      }
     }
 
-    if (secondaryDomain) {
-      filters.secondaryDomain = secondaryDomain;
+    if (secondaryDomain && secondaryDomain.trim()) {
+      // Validate ObjectId format
+      if (mongoose.Types.ObjectId.isValid(secondaryDomain.trim())) {
+        filters.secondaryDomain = secondaryDomain.trim();
+      } else {
+        console.warn("Invalid secondaryDomain ObjectId:", secondaryDomain);
+      }
     }
 
-    const sortOrder = order === "asc" ? 1 : -1;
+    const sortOrder =
+      order === "asc" || order === "desc" ? (order === "asc" ? 1 : -1) : -1;
 
-    const totalActivities = await Activity.countDocuments(filters);
+    // Validate sortBy field
+    const allowedSortFields = ["name", "description", "createdAt", "updatedAt"];
+    const validSortBy = allowedSortFields.includes(sortBy)
+      ? sortBy
+      : "createdAt";
+
+    const totalActivities = await Activity.countDocuments(filters).catch(
+      (err) => {
+        console.error("Error counting activities:", err);
+        return 0;
+      }
+    );
 
     const activities = await Activity.find(filters)
       .populate("primaryDomain")
       .populate("secondaryDomain")
       .skip(skip)
       .limit(parsedLimit)
-      .sort({ [sortBy]: sortOrder });
+      .sort({ [validSortBy]: sortOrder })
+      .catch((err) => {
+        console.error("Error finding activities:", err);
+        return [];
+      });
 
-    if (!activities.length) {
-      return res.status(404).json({
-        success: false,
+    // Don't return 404 for empty results during pagination - this is normal
+    // Only return 404 if there are no activities at all and we're on the first page
+    if (!activities.length && parsedPage === 1) {
+      return res.status(200).json({
+        success: true,
         message: "No activities found for the given filters.",
+        data: [],
+        pagination: {
+          totalActivities: 0,
+          totalPages: 0,
+          currentPage: parsedPage,
+          pageSize: parsedLimit,
+        },
       });
     }
 
-    return res.status(200).json({
+    const responseData = {
       success: true,
       message: "Activities fetched successfully",
-      data: activities,
+      data: activities || [],
       pagination: {
-        totalActivities,
-        totalPages: Math.ceil(totalActivities / parsedLimit),
-        currentPage: parsedPage,
-        pageSize: parsedLimit,
+        totalActivities: Math.max(totalActivities || 0, 0),
+        totalPages: Math.max(
+          Math.ceil((totalActivities || 0) / parsedLimit),
+          1
+        ),
+        currentPage: Math.max(parsedPage || 1, 1),
+        pageSize: Math.max(parsedLimit || 10, 1),
       },
-    });
+    };
+
+    console.log("Sending response:", JSON.stringify(responseData, null, 2));
+    return res.status(200).json(responseData);
   } catch (error) {
     console.error("Error fetching activities:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
