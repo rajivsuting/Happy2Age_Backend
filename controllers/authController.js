@@ -188,8 +188,10 @@ const login = async (req, res) => {
       message: "Admin logged in successfully.",
       user: {
         id: admin._id,
-        name: admin.name,
+        name: `${admin.firstName} ${admin.lastName}`,
         email: admin.email,
+        firstName: admin.firstName,
+        lastName: admin.lastName,
       },
       // Include tokens for localStorage (non-sensitive data)
       tokens: {
