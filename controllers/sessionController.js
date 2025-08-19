@@ -462,11 +462,11 @@ const searchSessionByName = async (req, res) => {
 };
 
 const deleteSession = async (req, res) => {
-  const { sessionId } = req.query; // Extract from req.query instead of req.params
+  const { id } = req.params; // Extract from req.params instead of req.query
 
   try {
     // Find the session by ID
-    const session = await Session.findById(sessionId).populate("cohort");
+    const session = await Session.findById(id).populate("cohort");
     if (!session) {
       return res.status(404).json({ message: "Session not found" });
     }
@@ -480,19 +480,20 @@ const deleteSession = async (req, res) => {
     }
 
     // Remove all attendance records related to this session
-    await Attendance.deleteMany({ session: sessionId });
+    await Attendance.deleteMany({ session: id });
 
     // Remove session from the cohort's sessions array
-    cohort.sessions = cohort.sessions.filter((s) => s.toString() !== sessionId);
+    cohort.sessions = cohort.sessions.filter((s) => s.toString() !== id);
     await cohort.save();
 
     // Delete all evaluations related to the session
-    await Evaluation.deleteMany({ session: sessionId });
+    await Evaluation.deleteMany({ session: id });
 
     // Delete the session
-    await Session.findByIdAndDelete(sessionId);
+    await Session.findByIdAndDelete(id);
 
     res.status(200).json({
+      success: true,
       message:
         "Session, evaluations, and related references deleted successfully",
     });

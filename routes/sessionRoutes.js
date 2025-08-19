@@ -735,12 +735,13 @@ routes.get("/sessions/search", authenticate, searchSessionsWithDateRange);
 
 routes.get("/name", authenticate, searchSessionByName);
 
-routes.delete("/delete", authenticate, deleteSession);
-routes.get("/:id", authenticate, getSessionById);
 routes.get(
   "/attendance/participant/:participantId",
   authenticate,
   getAttendanceByParticipantId
 );
+
+routes.delete("/delete/:id", authenticate, deleteSession);
+routes.get("/:id", authenticate, getSessionById);
 
 module.exports = routes;
