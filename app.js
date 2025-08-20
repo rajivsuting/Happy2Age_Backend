@@ -19,7 +19,7 @@ const options = {
     },
     servers: [
       {
-        url: "http://localhost:8000",
+        url: "https://happy2age-backend-gn8ln.ondigitalocean.app",
         description: "Production server",
       },
     ],
@@ -61,7 +61,7 @@ app.use(
 
       const allowedOrigins = [
         "https://happy2age-frontend-gn8ln.ondigitalocean.app",
-        "http://localhost:8000",
+        "https://happy2age-backend-gn8ln.ondigitalocean.app",
         "https://admin.happy2age.com",
         "https://www.admin.happy2age.com",
         "http://localhost:3000",
@@ -102,7 +102,7 @@ app.use(
       callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: [
       "Content-Type",
       "Authorization",
@@ -119,7 +119,7 @@ app.use(
 app.use((req, res, next) => {
   const allowedOrigins = [
     "https://happy2age-frontend-gn8ln.ondigitalocean.app",
-    "http://localhost:8000",
+    "https://happy2age-backend-gn8ln.ondigitalocean.app",
     "https://admin.happy2age.com",
     "https://www.admin.happy2age.com",
     "http://localhost:3000",
@@ -218,7 +218,7 @@ app.listen(port, () => {
   console.log(`Connection is live at port no. ${port}`);
   console.log(`CORS Configuration:`);
   console.log(
-    `- Allowed origins: https://happy2age-frontend-gn8ln.ondigitalocean.app, http://localhost:8000, https://admin.happy2age.com, https://www.admin.happy2age.com`
+    `- Allowed origins: https://happy2age-frontend-gn8ln.ondigitalocean.app, https://happy2age-backend-gn8ln.ondigitalocean.app, https://admin.happy2age.com, https://www.admin.happy2age.com`
   );
   console.log(`- Subdomain support: *.happy2age.com`);
   console.log(`- Development origins: localhost variants`);
