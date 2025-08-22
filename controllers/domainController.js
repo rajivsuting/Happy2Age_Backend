@@ -74,6 +74,47 @@ const getAllDomains = async (req, res) => {
   }
 };
 
+// ... existing code ...
+
+const getAllDomainsWithoutPagination = async (req, res) => {
+  try {
+    const { category = "All", name = "" } = req.query;
+
+    const query = {};
+
+    // Filter by category if not "All"
+    if (category !== "All") {
+      query.category = category;
+    }
+
+    // Case-insensitive name search
+    if (name) {
+      query.name = { $regex: name, $options: "i" };
+    }
+
+    const domains = await Domain.find(query);
+
+    if (domains.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No domains found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Domains fetched successfully",
+      data: domains,
+    });
+  } catch (error) {
+    console.error("Error fetching domains:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
 const getDomainById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -158,6 +199,7 @@ const deleteDomain = async (req, res) => {
 module.exports = {
   createDomain,
   getAllDomains,
+  getAllDomainsWithoutPagination,
   getDomainById,
   updateDomain,
   deleteDomain,

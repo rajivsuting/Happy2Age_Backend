@@ -7,6 +7,7 @@ const {
   updateDomain,
   getDomainById,
   deleteDomain,
+  getAllDomainsWithoutPagination,
 } = require("../controllers/domainController");
 const authenticate = require("../middlewares/authenticate");
 
@@ -207,6 +208,7 @@ routes.post("/create", authenticate, createDomain);
  */
 
 routes.get("/all", authenticate, getAllDomains);
+routes.get("/all-no-pagination", authenticate, getAllDomainsWithoutPagination);
 
 /**
  * @openapi
