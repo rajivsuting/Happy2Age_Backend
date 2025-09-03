@@ -9,7 +9,7 @@ const {
   searchCohortByName,
   getCohortById,
 } = require("../controllers/cohortController");
-const authenticate = require("../middlewares/authenticate");
+const { authenticate } = require("../middlewares/authenticate");
 
 /**
  * @openapi

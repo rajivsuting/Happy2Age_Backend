@@ -10,7 +10,7 @@ const {
   getReportHistory,
   getReport,
 } = require("../controllers/reportController");
-const authenticate = require("../middlewares/authenticate");
+const { authenticate } = require("../middlewares/authenticate");
 
 /**
  * @openapi

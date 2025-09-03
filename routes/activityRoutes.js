@@ -10,7 +10,7 @@ const {
   getActivityById,
   getAllActivitiesForExport,
 } = require("../controllers/activityController");
-const authenticate = require("../middlewares/authenticate");
+const { authenticate } = require("../middlewares/authenticate");
 
 /**
  * @openapi

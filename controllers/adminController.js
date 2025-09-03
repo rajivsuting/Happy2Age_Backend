@@ -57,13 +57,21 @@ const getAdminById = async (req, res) => {
 // Create new admin
 const createAdmin = async (req, res) => {
   try {
-    const { firstName, lastName, email, password } = req.body;
+    const { firstName, lastName, email, password, role } = req.body;
 
     // Validation
     if (!firstName || !lastName || !email || !password) {
       return res.status(400).json({
         success: false,
         message: "All fields are required",
+      });
+    }
+
+    // Validate role if provided
+    if (role && !["admin", "super_admin"].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid role. Must be 'admin' or 'super_admin'",
       });
     }
 
@@ -93,6 +101,7 @@ const createAdmin = async (req, res) => {
       password: hashPassword,
       salt,
       emailToken,
+      role: role || "admin", // Default to 'admin' if not specified
       enabled: true,
       removed: false,
     });
@@ -103,6 +112,7 @@ const createAdmin = async (req, res) => {
       firstName: admin.firstName,
       lastName: admin.lastName,
       email: admin.email,
+      role: admin.role,
       enabled: admin.enabled,
       createdAt: admin.createdAt,
       updatedAt: admin.updatedAt,
@@ -126,13 +136,14 @@ const createAdmin = async (req, res) => {
 const updateAdmin = async (req, res) => {
   try {
     const { id } = req.params;
-    const { firstName, lastName, email, enabled } = req.body;
+    const { firstName, lastName, email, enabled, role } = req.body;
 
     // Check if admin exists
     const existingAdmin = await AdminSchema.findOne({
       _id: id,
       removed: false,
     });
+
     if (!existingAdmin) {
       return res.status(404).json({
         success: false,
@@ -156,12 +167,21 @@ const updateAdmin = async (req, res) => {
       }
     }
 
+    // Validate role if provided
+    if (role && !["admin", "super_admin"].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid role. Must be 'admin' or 'super_admin'",
+      });
+    }
+
     // Update admin
     const updateData = {};
     if (firstName) updateData.firstName = firstName;
     if (lastName) updateData.lastName = lastName;
     if (email) updateData.email = email.toLowerCase();
     if (typeof enabled === "boolean") updateData.enabled = enabled;
+    if (role) updateData.role = role;
 
     const updatedAdmin = await AdminSchema.findByIdAndUpdate(id, updateData, {
       new: true,

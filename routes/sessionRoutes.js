@@ -13,7 +13,7 @@ const {
   getSessionById,
   getAttendanceByParticipantId,
 } = require("../controllers/sessionController");
-const authenticate = require("../middlewares/authenticate");
+const { authenticate } = require("../middlewares/authenticate");
 
 /**
  * @openapi

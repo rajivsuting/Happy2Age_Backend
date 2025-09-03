@@ -9,7 +9,7 @@ const {
   updateCASPResult,
   deleteCASPResult,
 } = require("../controllers/caspController");
-const authenticate = require("../middlewares/authenticate");
+const { authenticate } = require("../middlewares/authenticate");
 
 routes.post("/add", authenticate, addCASP);
 routes.get("/all", authenticate, getCASPParticipantAll);

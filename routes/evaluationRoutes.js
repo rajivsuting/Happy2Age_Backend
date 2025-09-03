@@ -10,7 +10,7 @@ const {
   getEvaluationById,
   getPerformanceTrends,
 } = require("../controllers/evaluationController");
-const authenticate = require("../middlewares/authenticate");
+const { authenticate } = require("../middlewares/authenticate");
 
 /**
  * @openapi

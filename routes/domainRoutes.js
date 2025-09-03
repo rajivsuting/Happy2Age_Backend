@@ -9,7 +9,7 @@ const {
   deleteDomain,
   getAllDomainsWithoutPagination,
 } = require("../controllers/domainController");
-const authenticate = require("../middlewares/authenticate");
+const { authenticate } = require("../middlewares/authenticate");
 
 /**
  * @openapi

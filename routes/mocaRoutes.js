@@ -7,7 +7,7 @@ const {
   updateMocaResult,
   deleteMocaResult,
 } = require("../controllers/mocaController");
-const authenticate = require("../middlewares/authenticate");
+const { authenticate } = require("../middlewares/authenticate");
 const routes = express.Router();
 
 routes.post("/create", authenticate, addMocaTest);

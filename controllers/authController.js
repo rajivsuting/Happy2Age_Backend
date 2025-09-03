@@ -49,15 +49,25 @@ const register = async (req, res) => {
 };
 
 const createTokens = (admin) => {
-  const payload = { id: admin._id, role: "admin" };
+  const accessToken = jwt.sign(
+    {
+      id: admin._id,
+      email: admin.email,
+      role: admin.role,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "1h" }
+  );
 
-  const accessToken = jwt.sign(payload, process.env.JWT_SECRET, {
-    expiresIn: "1h",
-  });
-
-  const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET, {
-    expiresIn: "7d",
-  });
+  const refreshToken = jwt.sign(
+    {
+      id: admin._id,
+      email: admin.email,
+      role: admin.role,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
 
   return { accessToken, refreshToken };
 };
@@ -192,6 +202,7 @@ const login = async (req, res) => {
         email: admin.email,
         firstName: admin.firstName,
         lastName: admin.lastName,
+        role: admin.role,
       },
       // Include tokens for localStorage (non-sensitive data)
       tokens: {

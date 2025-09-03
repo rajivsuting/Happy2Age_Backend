@@ -19,7 +19,7 @@ const options = {
     },
     servers: [
       {
-        url: "https://happy2age-backend-gn8ln.ondigitalocean.app",
+        url: "http://localhost:8000",
         description: "Production server",
       },
     ],
@@ -50,7 +50,7 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 // auth
 const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
-const authenticate = require("./middlewares/authenticate");
+const { authenticate } = require("./middlewares/authenticate");
 
 const port = process.env.PORT || 3000;
 
@@ -62,7 +62,7 @@ app.use(
 
       const allowedOrigins = [
         "https://happy2age-frontend-gn8ln.ondigitalocean.app",
-        "https://happy2age-backend-gn8ln.ondigitalocean.app",
+        "http://localhost:8000",
         "https://admin.happy2age.com",
         "https://www.admin.happy2age.com",
         "http://localhost:3000",
@@ -120,7 +120,7 @@ app.use(
 app.use((req, res, next) => {
   const allowedOrigins = [
     "https://happy2age-frontend-gn8ln.ondigitalocean.app",
-    "https://happy2age-backend-gn8ln.ondigitalocean.app",
+    "http://localhost:8000",
     "https://admin.happy2age.com",
     "https://www.admin.happy2age.com",
     "http://localhost:3000",
@@ -220,7 +220,7 @@ app.listen(port, () => {
   console.log(`Connection is live at port no. ${port}`);
   console.log(`CORS Configuration:`);
   console.log(
-    `- Allowed origins: https://happy2age-frontend-gn8ln.ondigitalocean.app, https://happy2age-backend-gn8ln.ondigitalocean.app, https://admin.happy2age.com, https://www.admin.happy2age.com`
+    `- Allowed origins: https://happy2age-frontend-gn8ln.ondigitalocean.app, http://localhost:8000, https://admin.happy2age.com, https://www.admin.happy2age.com`
   );
   console.log(`- Subdomain support: *.happy2age.com`);
   console.log(`- Development origins: localhost variants`);

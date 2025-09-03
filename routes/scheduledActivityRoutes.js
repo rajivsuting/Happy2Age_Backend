@@ -6,7 +6,7 @@ const {
   updateScheduledActivity,
   deleteScheduledActivity,
 } = require("../controllers/scheduledActivityController");
-const authenticate = require("../middlewares/authenticate");
+const { authenticate } = require("../middlewares/authenticate");
 
 // Apply authentication middleware to all routes
 routes.use(authenticate);

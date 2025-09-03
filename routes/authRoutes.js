@@ -13,7 +13,7 @@ const {
   testCookies,
   checkCookies,
 } = require("../controllers/authController");
-const authenticate = require("../middlewares/authenticate");
+const { authenticate } = require("../middlewares/authenticate");
 
 routes.post("/register", register);
 routes.post("/login", login);

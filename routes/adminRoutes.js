@@ -8,7 +8,10 @@ const {
   toggleAdminStatus,
   deleteAdmin,
 } = require("../controllers/adminController");
-const authenticate = require("../middlewares/authenticate");
+const {
+  authenticate,
+  requireSuperAdmin,
+} = require("../middlewares/authenticate");
 
 const routes = express.Router();
 
@@ -21,19 +24,19 @@ routes.get("/", getAllAdmins);
 // Get single admin by ID
 routes.get("/:id", getAdminById);
 
-// Create new admin
-routes.post("/", createAdmin);
+// Create new admin - requires super admin
+routes.post("/", requireSuperAdmin, createAdmin);
 
-// Update admin
-routes.put("/:id", updateAdmin);
+// Update admin - requires super admin
+routes.put("/:id", requireSuperAdmin, updateAdmin);
 
-// Change admin password
-routes.put("/:id/password", changePassword);
+// Change admin password - requires super admin
+routes.put("/:id/password", requireSuperAdmin, changePassword);
 
-// Toggle admin status (enable/disable)
-routes.put("/:id/status", toggleAdminStatus);
+// Toggle admin status (enable/disable) - requires super admin
+routes.put("/:id/status", requireSuperAdmin, toggleAdminStatus);
 
-// Delete admin (soft delete)
-routes.delete("/:id", deleteAdmin);
+// Delete admin (soft delete) - requires super admin
+routes.delete("/:id", requireSuperAdmin, deleteAdmin);
 
 module.exports = routes;

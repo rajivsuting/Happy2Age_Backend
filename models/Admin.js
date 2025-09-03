@@ -51,6 +51,13 @@ const AdminSchema = new mongoose.Schema({
     required: true,
   },
 
+  role: {
+    type: String,
+    enum: ["admin", "super_admin"],
+    default: "admin",
+    required: true,
+  },
+
   emailToken: String,
 
   authType: {
