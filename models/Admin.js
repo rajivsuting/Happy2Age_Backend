@@ -55,7 +55,7 @@ const AdminSchema = new mongoose.Schema({
 
   authType: {
     type: String,
-    defalut: "email",
+    default: "email",
   },
 
   loggedSessions: {

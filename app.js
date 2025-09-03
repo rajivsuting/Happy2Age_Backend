@@ -49,6 +49,7 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 
 // auth
 const authRoutes = require("./routes/authRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 const authenticate = require("./middlewares/authenticate");
 
 const port = process.env.PORT || 3000;
@@ -178,6 +179,7 @@ app.use((err, req, res, next) => {
 
 // auth
 app.use("/auth", authRoutes);
+app.use("/admin", adminRoutes);
 
 // app.use(authenticate)
 app.use("/participant", participantRoutes);
